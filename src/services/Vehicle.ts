@@ -174,10 +174,10 @@ export const createVehicle = async (payload: CreateVehicleRequest): Promise<Vehi
   }
 }
 
-// Get all vehicles
-export const getVehicles = async (): Promise<VehiclesResponse> => {
+// Get vehicles with pagination
+export const getVehicles = async (page = 1, limit = 10): Promise<VehiclesResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/vehicles/`, {
+    const response = await fetch(`${API_BASE_URL}/vehicles/?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -195,6 +195,52 @@ export const getVehicles = async (): Promise<VehiclesResponse> => {
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to fetch vehicles',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+// Get all vehicles from all pages
+export const getAllVehicles = async (): Promise<VehiclesResponse> => {
+  try {
+    // First, get the first page to know total pages
+    const firstPageResponse = await getVehicles(1, 10)
+    if (!firstPageResponse.success || !firstPageResponse.data) {
+      return firstPageResponse
+    }
+
+    let allVehicles = firstPageResponse.data.vehicles || []
+    
+    // Check if response includes pagination info
+    const responseData = firstPageResponse.data as any
+    const totalPages = responseData.totalPages || 1
+    
+    // If there are more pages, fetch them all
+    if (totalPages > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= totalPages; page++) {
+        pagePromises.push(getVehicles(page, 10))
+      }
+      
+      const pageResponses = await Promise.all(pagePromises)
+      
+      // Combine all vehicles
+      for (const response of pageResponses) {
+        if (response.success && response.data?.vehicles) {
+          allVehicles = [...allVehicles, ...response.data.vehicles]
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      message: 'All vehicles fetched successfully',
+      data: { vehicles: allVehicles }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to fetch all vehicles',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }

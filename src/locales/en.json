@@ -16,6 +16,17 @@
     "redirecting": "Redirecting to login...",
     "cancel": "Cancel"
   },
+  "toast": {
+    "imageUploadSuccess": "Images uploaded successfully!",
+    "imageRemoveSuccess": "Image removed successfully!",
+    "createFailed": "Failed to create listing",
+    "vehicleDeleteSuccess": "Vehicle deleted successfully!",
+    "batteryDeleteSuccess": "Battery deleted successfully!",
+    "deleteFailed": "Failed to delete listing",
+    "vehicleUpdateSuccess": "Vehicle updated successfully!",
+    "batteryUpdateSuccess": "Battery updated successfully!",
+    "updateFailed": "Failed to update listing"
+  },
   "navigation": {
     "home": "Home",
     "about": "About Us",
@@ -183,13 +194,13 @@
       "electricVehicle": "Electric Vehicle",
       "editVehicle": "Edit Vehicle",
       "editBattery": "Edit Battery",
-      "deleteConfirm": "Delete this listing?",
+      "deleteConfirm": "Are you sure you want to delete this listing?",
       "updateError": "An error occurred while updating",
       "cancel": "Cancel",
       "saveChanges": "Save Changes",
       "addNewImages": "Add New Images",
       "currentImages": "Current Images",
-      "newImages": "New Image",
+      "newImages": "New Images",
       "form": {
         "title": "Title",
         "titlePlaceholder": "Enter vehicle/battery title",
@@ -197,7 +208,7 @@
         "pricePlaceholder": "Enter price",
         "year": "Year",
         "yearPlaceholder": "Enter year",
-        "mileage": "Mileage",
+        "mileage": "Mileage (km)",
         "mileagePlaceholder": "Enter mileage",
         "brand": "Brand",
         "brandPlaceholder": "Enter brand",
@@ -226,19 +237,19 @@
       },
       "fields": {
         "listingTitle": "Listing Title",
-        "price": "Price",
+        "price": "Price (VND)",
         "brand": "Brand",
         "make": "Make",
         "model": "Model",
         "year": "Year",
-        "mileage": "Mileage",
+        "mileage": "Mileage (km)",
         "location": "Location",
         "bodyType": "Body Type",
         "exteriorColor": "Exterior Color",
         "interiorColor": "Interior Color",
-        "batteryHealth": "Battery Health",
+        "batteryHealth": "Battery Health (%)",
         "batteryCapacity": "Battery Capacity (kWh)",
-        "range": "Range",
+        "range": "Range (km)",
         "chargingType": "Charging Types",
         "description": "Description",
         "features": "Features",
@@ -248,13 +259,13 @@
         "clickOrDrag": "Click or drag images here"
       },
       "batterySpecs": {
-        "weight": "Weight",
-        "voltage": "Voltage",
+        "weight": "Weight (kg)",
+        "voltage": "Voltage (V)",
         "chemistry": "Chemistry",
-        "degradation": "Degradation",
+        "degradation": "Degradation (%)",
         "chargingTime": "Charging Time",
         "installation": "Installation",
-        "warrantyPeriod": "Warranty Period",
+        "warrantyPeriod": "Warranty Period (years)",
         "temperatureRange": "Temperature Range"
       },
       "buttons": {
@@ -268,12 +279,30 @@
       },
       "validation": {
         "uploadImageRequired": "Please upload at least one image",
-        "listingCreatedSuccess": "Listing created successfully!"
+        "listingCreatedSuccess": "Listing created successfully!",
+        "makeRequired": "make is required",
+        "modelRequired": "model is required",
+        "yearRequired": "year is required",
+        "mileageRequired": "mileage is required",
+        "titleRequired": "title is required",
+        "descriptionRequired": "description is required",
+        "priceRequired": "price is required",
+        "batteryCapacityRequired": "batteryCapacity is required",
+        "titleMinLength": "Minimum 5 characters",
+        "titleMaxLength": "Maximum 100 characters",
+        "descriptionMinLength": "Minimum 20 characters",
+        "descriptionMaxLength": "Maximum 5000 characters",
+        "pricePositive": "Must be a positive number",
+        "makeMinLength": "Minimum 2 characters",
+        "yearRange": "Must be between 1990 and 2026",
+        "mileageInteger": "Must be a non-negative integer",
+        "batteryHealthRange": "Must be between 0 and 100",
+        "batteryCapacityPositive": "Must be a positive number"
       },
       "placeholders": {
-        "listingTitle": "e.g., 2020 Tesla Model 3",
+        "listingTitle": "e.g., 2020 Tesla Model 3 Long Range",
         "price": "25000",
-        "brand": "e.g., CATL, BYD",
+        "brand": "e.g., CATL, BYD, LG",
         "model": "Model 3",
         "year": "2020",
         "mileage": "45000",
@@ -287,7 +316,7 @@
         "installation": "Professional required",
         "warrantyPeriod": "4",
         "temperatureRange": "-20°C to 60°C",
-        "description": "Describe your listing..."
+        "description": "Describe your listing in detail..."
       }
     }
   },
