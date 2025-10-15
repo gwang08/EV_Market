@@ -12,7 +12,7 @@ import AddListing from "@/components/Sellerpage/AddListing";
 import AuthWrapper from "../../components/common/AuthWrapper";
 
 export default function SellPage() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('listings')
 
   const renderTabContent = () => {
     switch (activeTab) {

@@ -6,14 +6,16 @@ import Footer from "@/components/Footer"
 import BrowseHeader from '../../components/Browse/BrowseHeader'
 import BrowseFilters from '../../components/Browse/BrowseFilters'
 import ProductGrid from '../../components/Browse/ProductGrid'
-import { getVehicles, Vehicle } from '../../services/Vehicle'
-import { getBatteries, Battery } from '../../services/Battery'
+import { useDataContext } from '../../contexts/DataContext'
+import { Vehicle } from '../../services/Vehicle'
+import { Battery } from '../../services/Battery'
 import { getCurrentUserId } from '../../services'
 import { Product, FilterState } from '../../types/product'
 
 function BrowsePageContent() {
   const searchParams = useSearchParams()
   const urlSearch = searchParams.get('search') || ''
+  const { vehicles: allVehicles, batteries: allBatteries, isLoadingVehicles, isLoadingBatteries, fetchVehicles, fetchBatteries } = useDataContext()
 
   const [filters, setFilters] = useState<FilterState>({
     search: urlSearch, // Initialize with URL search parameter
@@ -27,8 +29,44 @@ function BrowsePageContent() {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+
+  // Fetch data on mount (will use cache if available)
+  useEffect(() => {
+    fetchVehicles()
+    fetchBatteries()
+  }, [fetchVehicles, fetchBatteries])
+
+  // Update products when vehicles or batteries data changes
+  useEffect(() => {
+    const processData = async () => {
+      if (!allVehicles || !allBatteries) return
+      
+      // Get current user ID to filter out their own products
+      const currentUserId = await getCurrentUserId()
+      
+      const allProducts: Product[] = []
+
+      // Process vehicles - only AVAILABLE and not user's own
+      const availableVehicles = allVehicles.filter(vehicle => {
+        const isAvailable = vehicle.status === 'AVAILABLE'
+        const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
+        return isAvailable && isNotOwnVehicle
+      })
+      allProducts.push(...availableVehicles.map(convertVehicleToProduct))
+
+      // Process batteries - only AVAILABLE and not user's own
+      const availableBatteries = allBatteries.filter(battery => {
+        const isAvailable = battery.status === 'AVAILABLE'
+        const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
+        return isAvailable && isNotOwnBattery
+      })
+      allProducts.push(...availableBatteries.map(convertBatteryToProduct))
+
+      setProducts(allProducts)
+    }
+    
+    processData()
+  }, [allVehicles, allBatteries])
 
   // Convert API data to Product format
   const convertVehicleToProduct = (vehicle: Vehicle): Product => ({
@@ -73,57 +111,6 @@ function BrowsePageContent() {
       }))
     }
   }, [urlSearch])
-
-  // Fetch data from APIs
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      setError(null)
-      
-      try {
-        // Get current user ID to filter out their own products
-        const currentUserId = await getCurrentUserId()
-        
-        const [vehiclesResponse, batteriesResponse] = await Promise.all([
-          getVehicles(),
-          getBatteries()
-        ])
-
-        const allProducts: Product[] = []
-
-        // Process vehicles - only AVAILABLE and not user's own
-        if (vehiclesResponse.success && vehiclesResponse.data) {
-          const vehicles = vehiclesResponse.data.vehicles || []
-          const availableVehicles = vehicles.filter(vehicle => {
-            const isAvailable = vehicle.status === 'AVAILABLE'
-            const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
-            return isAvailable && isNotOwnVehicle
-          })
-          allProducts.push(...availableVehicles.map(convertVehicleToProduct))
-        }
-
-        // Process batteries - only AVAILABLE and not user's own
-        if (batteriesResponse.success && batteriesResponse.data) {
-          const batteries = batteriesResponse.data.batteries || []
-          const availableBatteries = batteries.filter(battery => {
-            const isAvailable = battery.status === 'AVAILABLE'
-            const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
-            return isAvailable && isNotOwnBattery
-          })
-          allProducts.push(...availableBatteries.map(convertBatteryToProduct))
-        }
-
-        setProducts(allProducts)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-        setError('Failed to load products')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [])
 
   // Filter products based on current filters
   const filteredProducts = products.filter(product => {
@@ -211,8 +198,8 @@ function BrowsePageContent() {
             <div className="p-6">
               <ProductGrid 
                 products={filteredProducts}
-                isLoading={isLoading}
-                error={error}
+                isLoading={isLoadingVehicles || isLoadingBatteries}
+                error={null}
               />
             </div>
           </div>

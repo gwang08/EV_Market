@@ -26,12 +26,15 @@ import {
   parseApiValidationErrors,
   ValidationError
 } from '../../Utils/validation'
+import { useDataContext } from '../../contexts/DataContext'
+import { GridSkeleton } from '../common/Skeleton'
 
 type ListingType = 'vehicle' | 'battery'
 
 function MyListings() {
   const { t } = useI18nContext()
   const { toasts, success, error: showError, removeToast } = useToast()
+  const { refreshVehicles, refreshBatteries } = useDataContext()
   const [filter, setFilter] = useState<'all' | 'active' | 'sold'>('all')
   const [tab, setTab] = useState<ListingType>('vehicle')
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -76,8 +79,9 @@ function MyListings() {
 
   const ErrorMessage = ({ fieldName }: { fieldName: string }) => {
     const error = getFieldError(validationErrors, fieldName)
-    return error ? (
-      <p className="mt-1 text-sm text-red-600">{error}</p>
+    const translatedError = error ? t(error, error) : null
+    return translatedError ? (
+      <p className="mt-1 text-sm text-red-600">{translatedError}</p>
     ) : null
   }
 
@@ -273,11 +277,13 @@ function MyListings() {
         const res = await deleteVehicle(item.id)
         if (!res.success) throw new Error(res.message)
         setVehicles(prev => prev.filter(v => v.id !== item.id))
+        await refreshVehicles() // Refresh cache
         success(t('toast.vehicleDeleteSuccess', 'Vehicle deleted successfully!'))
       } else {
         const res = await deleteBattery(item.id)
         if (!res.success) throw new Error(res.message)
         setBatteries(prev => prev.filter(b => b.id !== item.id))
+        await refreshBatteries() // Refresh cache
         success(t('toast.batteryDeleteSuccess', 'Battery deleted successfully!'))
       }
     } catch (e) {
@@ -384,10 +390,12 @@ function MyListings() {
       if (editType === 'vehicle') {
         const updatedVehicle = (result.data as any)?.vehicle || result.data
         setVehicles(prev => prev.map(v => v.id === editId ? { ...v, ...updatedVehicle } : v))
+        await refreshVehicles() // Refresh cache
         success(t('toast.vehicleUpdateSuccess', 'Xe được cập nhật thành công!'))
       } else {
         const updatedBattery = (result.data as any)?.battery || result.data
         setBatteries(prev => prev.map(b => b.id === editId ? { ...b, ...updatedBattery } : b))
+        await refreshBatteries() // Refresh cache
         success(t('toast.batteryUpdateSuccess', 'Pin được cập nhật thành công!'))
       }
       
@@ -410,92 +418,170 @@ function MyListings() {
   // }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 bg-white min-h-screen">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onClose={removeToast} />
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold" style={{ color: colors.Text }}>{t('seller.listings.title')}</h2>
-          <p className="text-sm mt-1" style={{ color: colors.SubText }}>{t('seller.listings.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setTab('vehicle')} 
-            className={`px-3 py-2 rounded font-medium transition-colors ${
-              tab==='vehicle'
-                ?'bg-blue-600 text-white shadow-md'
-                :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-          >
-            {t('seller.listings.vehicle')}
-          </button>
-          <button 
-            onClick={() => setTab('battery')} 
-            className={`px-3 py-2 rounded font-medium transition-colors ${
-              tab==='battery'
-                ?'bg-blue-600 text-white shadow-md'
-                :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-          >
-            {t('seller.listings.battery')}
-          </button>
+      
+      {/* Header Section */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          {t('seller.listings.title')}
+        </h2>
+        <p className="text-sm mt-2" style={{ color: colors.SubText }}>
+          {t('seller.listings.subtitle')}
+        </p>
+      </div>
+
+      {/* Tabs and Filters Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Product Type Tabs */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setTab('vehicle')} 
+              className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                tab==='vehicle'
+                  ?'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
+                  :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+              </svg>
+              {t('seller.listings.vehicle')}
+            </button>
+            <button 
+              onClick={() => setTab('battery')} 
+              className={`px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                tab==='battery'
+                  ?'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
+                  :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t('seller.listings.battery')}
+            </button>
+          </div>
+
+          {/* Status Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              onClick={() => setFilter('all')} 
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                filter==='all'
+                  ?'bg-blue-600 text-white shadow-md'
+                  :'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-blue-300'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              {t('seller.listings.all')}
+            </button>
+            <button 
+              onClick={() => setFilter('active')} 
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                filter==='active'
+                  ?'bg-green-600 text-white shadow-md'
+                  :'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-green-300'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t('seller.listings.active')}
+            </button>
+            <button 
+              onClick={() => setFilter('sold')} 
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                filter==='sold'
+                  ?'bg-gray-600 text-white shadow-md'
+                  :'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              {t('seller.listings.sold')}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-6">
-        <button 
-          onClick={() => setFilter('all')} 
-          className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-            filter==='all'
-              ?'bg-blue-600 text-white shadow-md'
-              :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-          }`}
-        >
-          {t('seller.listings.all')}
-        </button>
-        <button 
-          onClick={() => setFilter('active')} 
-          className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-            filter==='active'
-              ?'bg-blue-600 text-white shadow-md'
-              :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-          }`}
-        >
-          {t('seller.listings.active')}
-        </button>
-        <button 
-          onClick={() => setFilter('sold')} 
-          className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-            filter==='sold'
-              ?'bg-blue-600 text-white shadow-md'
-              :'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-          }`}
-        >
-          {t('seller.listings.sold')}
-        </button>
-      </div>
+      {/* Loading State */}
+      {loading && (
+        <GridSkeleton count={6} columns={3} showBadge={true} />
+      )}
 
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-red-600 text-sm font-medium">{error}</p>
+        </div>
+      )}
 
+      {/* Listings Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredListings.map((item) => (
-          <div key={item.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200">
+          <div key={item.id} className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-1">
             {/* Image Section */}
-            <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100">
-              <Image src={item.image} alt={item.title} fill className="object-cover" />
+            <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+              <Image 
+                src={item.image} 
+                alt={item.title} 
+                fill 
+                className="object-cover group-hover:scale-110 transition-transform duration-500" 
+              />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+              
+              {/* Status Badge */}
               <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
+                <span className={`px-4 py-1.5 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm flex items-center gap-1.5 ${
                   item.status === 'active' 
-                    ? 'bg-green-100 text-green-800 border border-green-200' 
-                    : 'bg-red-100 text-red-800 border border-red-200'
+                    ? 'bg-green-500/90 text-white border-2 border-green-300' 
+                    : 'bg-red-500/90 text-white border-2 border-red-300'
                 }`}>
-                  {item.status === 'active' ? t('seller.listings.available') : t('seller.listings.soldStatus')}
+                  {item.status === 'active' ? (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t('seller.listings.available')}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {t('seller.listings.soldStatus')}
+                    </>
+                  )}
                 </span>
               </div>
+              
+              {/* Type Badge */}
               <div className="absolute bottom-4 left-4">
-                <span className="bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs font-medium">
-                  {item.type === 'vehicle' ? t('seller.listings.electricVehicle') : t('seller.listings.battery')}
+                <span className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/20 flex items-center gap-1.5">
+                  {item.type === 'vehicle' ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                      </svg>
+                      {t('seller.listings.electricVehicle')}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      {t('seller.listings.battery')}
+                    </>
+                  )}
                 </span>
               </div>
             </div>
@@ -503,62 +589,77 @@ function MyListings() {
             {/* Content Section */}
             <div className="p-6">
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-1">{item.title}</h3>
-                  {item.specs.brand && (
-                    <p className="text-sm text-gray-600 font-medium">
-                      {item.specs.brand} 
-                      {'model' in item.specs && item.specs.model ? ` ${item.specs.model}` : ''}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className="text-2xl font-bold text-green-600">{item.price}</span>
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                  {item.title}
+                </h3>
+                {item.specs.brand && (
+                  <p className="text-sm text-gray-600 font-medium flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                    {item.specs.brand} 
+                    {'model' in item.specs && item.specs.model ? ` • ${item.specs.model}` : ''}
+                  </p>
+                )}
+                <div className="mt-3">
+                  <span className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+                    {item.price}
+                  </span>
                 </div>
               </div>
               
               {/* Specifications */}
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2.5 mb-6 bg-gray-50 rounded-lg p-4 border border-gray-100">
                 {item.type === 'vehicle' ? (
                   <>
                     {item.specs.year && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.year}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium">{item.specs.year}</span>
                       </div>
                     )}
                     {item.specs.mileage && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.mileage}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="font-medium">{item.specs.mileage}</span>
                       </div>
                     )}
                     {item.specs.battery && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.battery}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <span className="font-medium">{item.specs.battery}</span>
                       </div>
                     )}
                   </>
                 ) : (
                   <>
                     {item.specs.year && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.year}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium">{item.specs.year}</span>
                       </div>
                     )}
                     {item.specs.capacity && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.capacity}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="font-medium">{item.specs.capacity}</span>
                       </div>
                     )}
                     {item.specs.health && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span className="w-4 h-4 mr-2"></span>
-                        <span>{item.specs.health}</span>
+                      <div className="flex items-center text-sm text-gray-700">
+                        <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium">{item.specs.health}</span>
                       </div>
                     )}
                   </>
@@ -569,15 +670,20 @@ function MyListings() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => openEdit({ id: item.id, type: tab })} 
-                  className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-200 flex items-center justify-center gap-2"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                   {t('seller.listings.edit')}
                 </button>
                 <button 
                   onClick={() => onDelete({ id: item.id, type: tab })} 
-                  className="px-4 py-3 border-2 border-red-200 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 hover:border-red-300 transition-colors"
+                  className="px-5 py-3 border-2 border-red-300 text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 hover:border-red-400 transition-all hover:scale-105 duration-200"
                 >
-                  🗑️
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -586,31 +692,69 @@ function MyListings() {
       </div>
 
       {filteredListings.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium" style={{ color: colors.Text }}>{t('seller.listings.noListings')}</h3>
-          <p className="text-sm" style={{ color: colors.SubText }}>{t('seller.listings.noListingsDesc')}</p>
+        <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="max-w-md mx-auto">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('seller.listings.noListings')}</h3>
+            <p className="text-base text-gray-600 mb-6">{t('seller.listings.noListingsDesc')}</p>
+          </div>
         </div>
       )}
 
       {/* Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold">{editType === 'vehicle' ? t('seller.listings.editVehicle') : t('seller.listings.editBattery')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  {t('seller.listings.form.title')} <span className="text-red-600 font-bold">*</span>
-                </label>
-                <input
-                  className={getInputClass('title')}
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  onBlur={() => handleInputBlur('title')}
-                  placeholder={t('seller.listings.form.titlePlaceholder')} 
-                />
-                <ErrorMessage fieldName="title" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-6 rounded-t-2xl shadow-lg z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold flex items-center gap-3">
+                    {editType === 'vehicle' ? (
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                      </svg>
+                    ) : (
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    )}
+                    {editType === 'vehicle' ? t('seller.listings.editVehicle') : t('seller.listings.editBattery')}
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">Update your listing information</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    {t('seller.listings.form.title')} <span className="text-red-600 font-bold">*</span>
+                  </label>
+                  <input
+                    className={getInputClass('title')}
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    onBlur={() => handleInputBlur('title')}
+                    placeholder={t('seller.listings.form.titlePlaceholder')} 
+                  />
+                  <ErrorMessage fieldName="title" />
+                </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
                   {t('seller.listings.form.price')} <span className="text-red-600 font-bold">*</span>
@@ -648,7 +792,6 @@ function MyListings() {
                     <input className={getInputClass('model')} value={formData.model || ''} onChange={(e) => handleInputChange('model', e.target.value)} onBlur={() => handleInputBlur('model')} placeholder={t('seller.listings.form.modelPlaceholder')} />
                     <ErrorMessage fieldName="model" />
                   </div>
-                 
                 </>
               ) : (
                 <>
@@ -740,17 +883,26 @@ function MyListings() {
                 </button>
               </div>
             </div>
-            <div className="flex justify-end gap-3 pt-4">
+          </div>
+            
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 px-8 py-6 rounded-b-2xl border-t border-gray-200 flex justify-end gap-4">
               <button 
-                onClick={()=>setIsModalOpen(false)} 
-                className="px-6 py-3 border-2 border-gray-400 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-500 transition-colors font-semibold"
+                onClick={() => setIsModalOpen(false)} 
+                className="px-8 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-white hover:border-gray-400 transition-all font-bold shadow-sm hover:shadow-md flex items-center gap-2"
               >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
                 {t('seller.listings.cancel')}
               </button>
               <button 
                 onClick={onSave} 
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md"
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-bold shadow-md hover:shadow-lg transform hover:scale-105 duration-200 flex items-center gap-2"
               >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 {t('seller.listings.saveChanges')}
               </button>
             </div>

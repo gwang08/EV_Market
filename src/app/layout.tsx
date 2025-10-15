@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "../providers/I18nProvider";
 import { ToastProvider } from "../providers/ToastProvider";
+import { DataProvider } from "../contexts/DataContext";
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,9 +39,12 @@ export default function RootLayout({
       >
         <I18nProvider>
           <ToastProvider>
-            {children}
+            <DataProvider>
+              {children}
+            </DataProvider>
           </ToastProvider>
         </I18nProvider>
+        <Analytics />
       </body>
     </html>
   );
