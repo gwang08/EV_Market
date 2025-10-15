@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useI18nContext } from '../../providers/I18nProvider'
-import { getBatteries, type Battery, getCurrentUserId } from '../../services'
+import { useDataContext } from '../../contexts/DataContext'
+import { type Battery, getCurrentUserId } from '../../services'
 import colors from '../../Utils/Color'
 import VerifiedBadge from '../common/VerifiedBadge'
 import { ListSkeleton } from '../common/Skeleton'
@@ -13,13 +14,41 @@ export default function BatteriesList() {
   const { t } = useI18nContext()
   const router = useRouter()
   const toast = useToast()
+  const { batteries: allBatteries, isLoadingBatteries, fetchBatteries } = useDataContext()
   const [batteries, setBatteries] = useState<Battery[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [selectedBrand, setSelectedBrand] = useState('')
   const [filteredBatteries, setFilteredBatteries] = useState<Battery[]>([])
+
+  // Fetch batteries on mount (will use cache if available)
+  useEffect(() => {
+    fetchBatteries()
+  }, [fetchBatteries])
+
+  // Filter for available batteries when data loads
+  useEffect(() => {
+    const filterAvailableBatteries = async () => {
+      if (!allBatteries) return
+      
+      const currentUserId = await getCurrentUserId()
+      
+      const availableBatteries = allBatteries.filter(battery => {
+        const isAvailable = battery.status === 'AVAILABLE'
+        const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
+        return isAvailable && isNotOwnBattery
+      })
+      
+      setBatteries(availableBatteries)
+      setFilteredBatteries(availableBatteries)
+      
+      if (availableBatteries.length === 0) {
+        toast.info(t('batteries.noBatteries', 'Hiện tại không có pin nào khả dụng'))
+      }
+    }
+    
+    filterAvailableBatteries()
+  }, [allBatteries, toast, t])
 
   // Get unique brands from batteries
   const uniqueBrands = React.useMemo(() => {
@@ -32,46 +61,6 @@ export default function BatteriesList() {
   const handleBatteryClick = (batteryId: string) => {
     router.push(`/pin/${batteryId}`)
   }
-
-  useEffect(() => {
-    const fetchBatteries = async () => {
-      try {
-        // Get current user ID (if logged in)
-        const currentUserId = await getCurrentUserId()
-        
-        const response = await getBatteries()
-        if (response.success && response.data?.batteries) {
-          // Filter batteries:
-          // 1. Only show batteries with status === 'AVAILABLE'
-          // 2. Don't show current user's batteries
-          const availableBatteries = response.data.batteries.filter(battery => {
-            const isAvailable = battery.status === 'AVAILABLE'
-            const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
-            return isAvailable && isNotOwnBattery
-          })
-          
-          setBatteries(availableBatteries)
-          setFilteredBatteries(availableBatteries)
-          
-          // Show info toast if no batteries available
-          if (availableBatteries.length === 0) {
-            toast.info(t('batteries.noBatteries', 'Hiện tại không có pin nào khả dụng'))
-          }
-        } else {
-          setError(response.message || 'Failed to fetch batteries')
-          toast.error(response.message || t('batteries.fetchError', 'Không thể tải danh sách pin'))
-        }
-      } catch (err) {
-        const errorMsg = 'Failed to fetch batteries'
-        setError(errorMsg)
-        toast.error(t('batteries.fetchError', 'Không thể tải danh sách pin'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBatteries()
-  }, [toast, t])
 
   // Filter and sort batteries
   useEffect(() => {
@@ -102,7 +91,7 @@ export default function BatteriesList() {
     setFilteredBatteries(filtered)
   }, [batteries, searchTerm, sortBy, selectedBrand])
 
-  if (loading) {
+  if (isLoadingBatteries) {
     return (
       <div className="container mx-auto px-4 py-8">
         {/* Header Skeleton */}
@@ -117,22 +106,6 @@ export default function BatteriesList() {
         
         {/* Grid Skeleton */}
         <ListSkeleton count={8} showBadge={true} />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-red-600 text-lg">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
       </div>
     )
   }
@@ -245,6 +218,7 @@ export default function BatteriesList() {
                   alt={battery.title}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
                   unoptimized={true}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;

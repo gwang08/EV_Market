@@ -4,53 +4,46 @@ import colors from '../../Utils/Color'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useI18nContext } from '../../providers/I18nProvider'
-import { getBatteries, type Battery, getCurrentUserId } from '../../services'
+import { useDataContext } from '../../contexts/DataContext'
+import { type Battery, getCurrentUserId } from '../../services'
 import { GridSkeleton } from '../common/Skeleton'
 
 function TopBattery() {
   const { t } = useI18nContext()
   const router = useRouter()
-  const [batteries, setBatteries] = useState<Battery[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { batteries: allBatteries, isLoadingBatteries, fetchBatteries } = useDataContext()
+  const [displayBatteries, setDisplayBatteries] = useState<Battery[]>([])
   
   const handleBatteryClick = (batteryId: string) => {
     router.push(`/pin/${batteryId}`)
   }
 
+  // Fetch batteries on mount (will use cache if available)
   useEffect(() => {
-    const fetchBatteries = async () => {
-      try {
-        // Get current user ID (if logged in)
-        const currentUserId = await getCurrentUserId()
-        
-        const response = await getBatteries()
-        if (response.success && response.data?.batteries) {
-          // Filter batteries:
-          // 1. Only show batteries with status === 'AVAILABLE'
-          // 2. Don't show current user's batteries
-          const filteredBatteries = response.data.batteries.filter(battery => {
-            const isAvailable = battery.status === 'AVAILABLE'
-            const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
-            return isAvailable && isNotOwnBattery
-          })
-          
-          // Take only first 4 batteries for top deals
-          setBatteries(filteredBatteries.slice(0, 4))
-        } else {
-          setError(response.message || 'Failed to fetch batteries')
-        }
-      } catch (err) {
-        setError('Failed to fetch batteries')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchBatteries()
-  }, [])
+  }, [fetchBatteries])
 
-  if (loading) {
+  // Filter batteries when data changes
+  useEffect(() => {
+    const filterBatteries = async () => {
+      if (!allBatteries) return
+      
+      const currentUserId = await getCurrentUserId()
+      
+      const filteredBatteries = allBatteries.filter(battery => {
+        const isAvailable = battery.status === 'AVAILABLE'
+        const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
+        return isAvailable && isNotOwnBattery
+      })
+      
+      // Take only first 4 batteries for top deals
+      setDisplayBatteries(filteredBatteries.slice(0, 4))
+    }
+    
+    filterBatteries()
+  }, [allBatteries])
+
+  if (isLoadingBatteries) {
     return (
       <div className="py-16 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -60,16 +53,6 @@ function TopBattery() {
             </h2>
           </div>
           <GridSkeleton count={4} columns={4} showBadge={true} />
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="py-16 px-6 bg-white">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-red-600">{error}</p>
         </div>
       </div>
     )
@@ -92,7 +75,7 @@ function TopBattery() {
         </div>
 
         {/* Empty State */}
-        {batteries.length === 0 ? (
+        {displayBatteries.length === 0 ? (
           <div className="text-center py-16 bg-gray-50 rounded-xl shadow-sm border border-gray-200">
             <div className="max-w-md mx-auto">
               <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +92,7 @@ function TopBattery() {
         ) : (
           /* Battery Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {batteries.map((battery) => (
+          {displayBatteries.map((battery) => (
             <div 
               key={battery.id} 
               className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer border border-gray-200"
@@ -125,6 +108,7 @@ function TopBattery() {
                     width={200}
                     height={120}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                     unoptimized={true}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;

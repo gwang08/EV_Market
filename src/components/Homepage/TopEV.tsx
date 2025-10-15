@@ -4,53 +4,46 @@ import colors from '../../Utils/Color'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useI18nContext } from '../../providers/I18nProvider'
-import { getVehicles, type Vehicle, getCurrentUserId } from '../../services'
+import { useDataContext } from '../../contexts/DataContext'
+import { type Vehicle, getCurrentUserId } from '../../services'
 import { GridSkeleton } from '../common/Skeleton'
 
 export default function TopEV() {
   const { t } = useI18nContext()
   const router = useRouter()
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { vehicles: allVehicles, isLoadingVehicles, fetchVehicles } = useDataContext()
+  const [displayVehicles, setDisplayVehicles] = useState<Vehicle[]>([])
   
   const handleCarClick = (carId: string) => {
     router.push(`/vehicle/${carId}`)
   }
 
+  // Fetch vehicles on mount (will use cache if available)
   useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        // Get current user ID (if logged in)
-        const currentUserId = await getCurrentUserId()
-        
-        const response = await getVehicles()
-        if (response.success && response.data?.vehicles) {
-          // Filter vehicles:
-          // 1. Only show vehicles with status === 'AVAILABLE'
-          // 2. Don't show current user's vehicles
-          const filteredVehicles = response.data.vehicles.filter(vehicle => {
-            const isAvailable = vehicle.status === 'AVAILABLE'
-            const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
-            return isAvailable && isNotOwnVehicle
-          })
-          
-          // Take only first 4 vehicles for top deals
-          setVehicles(filteredVehicles.slice(0, 4))
-        } else {
-          setError(response.message || 'Failed to fetch vehicles')
-        }
-      } catch (err) {
-        setError('Failed to fetch vehicles')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchVehicles()
-  }, [])
+  }, [fetchVehicles])
 
-  if (loading) {
+  // Filter vehicles when data changes
+  useEffect(() => {
+    const filterVehicles = async () => {
+      if (!allVehicles) return
+      
+      const currentUserId = await getCurrentUserId()
+      
+      const filteredVehicles = allVehicles.filter(vehicle => {
+        const isAvailable = vehicle.status === 'AVAILABLE'
+        const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
+        return isAvailable && isNotOwnVehicle
+      })
+      
+      // Take only first 4 vehicles for top deals
+      setDisplayVehicles(filteredVehicles.slice(0, 4))
+    }
+    
+    filterVehicles()
+  }, [allVehicles])
+
+  if (isLoadingVehicles) {
     return (
       <div className="py-16 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
@@ -60,16 +53,6 @@ export default function TopEV() {
             </h2>
           </div>
           <GridSkeleton count={4} columns={4} showBadge={true} />
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="py-16 px-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-red-600">{error}</p>
         </div>
       </div>
     )
@@ -92,7 +75,7 @@ export default function TopEV() {
         </div>
 
         {/* Empty State */}
-        {vehicles.length === 0 ? (
+        {displayVehicles.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-sm">
             <div className="max-w-md mx-auto">
               <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +92,7 @@ export default function TopEV() {
         ) : (
           /* EV Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {vehicles.map((vehicle) => (
+          {displayVehicles.map((vehicle) => (
             <div 
               key={vehicle.id} 
               className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer"
@@ -125,6 +108,7 @@ export default function TopEV() {
                     width={200}
                     height={120}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                     unoptimized={true}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;

@@ -39,6 +39,7 @@ export {
 export {
   createBattery,
   getBatteries,
+  getAllBatteries,
   getBatteryById,
   getMyBatteries,
   updateBattery,
@@ -48,6 +49,7 @@ export {
 // Export Vehicle services
 export {
   getVehicles,
+  getAllVehicles,
   getVehicleById,
   getMyVehicles,
   createVehicle,

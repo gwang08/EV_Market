@@ -6,6 +6,8 @@ import { useToast } from '../../hooks/useToast'
 import { ToastContainer } from '../common/Toast'
 import { createVehicle } from '../../services/Vehicle'
 import { createBattery } from '../../services/Battery'
+import { useDataContext } from '../../contexts/DataContext'
+import { GridSkeleton } from '../common/Skeleton'
 
 interface FormData {
   title: string;
@@ -62,6 +64,8 @@ interface SelectProps {
 
 // Input component - moved outside to prevent re-creation
 const Input = ({ field, label, placeholder, type = "text", required = false, form, errors, handleChange, handleBlur }: InputProps) => {
+  const { t } = useI18nContext()
+  
   // Handle input for number fields - only allow numbers
   const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (type === "number") {
@@ -94,6 +98,9 @@ const Input = ({ field, label, placeholder, type = "text", required = false, for
     }
   }
 
+  const errorMessage = getFieldError(errors, field)
+  const translatedError = errorMessage ? t(errorMessage, errorMessage) : null
+
   return (
     <div>
       <label className="block text-sm font-medium mb-2 text-gray-700">
@@ -110,41 +117,49 @@ const Input = ({ field, label, placeholder, type = "text", required = false, for
           hasFieldError(errors, field) ? 'border-red-500' : 'border-gray-300'
         }`}
       />
-      {getFieldError(errors, field) && (
-        <p className="mt-1 text-sm text-red-600">{getFieldError(errors, field)}</p>
+      {translatedError && (
+        <p className="mt-1 text-sm text-red-600">{translatedError}</p>
       )}
     </div>
   )
 }
 
 // Select component - moved outside to prevent re-creation
-const Select = ({ field, label, options, required = false, form, errors, handleChange, handleBlur }: SelectProps) => (
-  <div>
-    <label className="block text-sm font-medium mb-2 text-gray-700">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-    <select
-      value={form[field]}
-      onChange={e => handleChange(field, e.target.value)}
-      onBlur={() => handleBlur(field)}
-      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900 text-base font-medium ${
-        hasFieldError(errors, field) ? 'border-red-500' : 'border-gray-300'
-      }`}
-    >
-      <option value="" className="text-gray-600">Select {label}</option>
-      {options.map((opt: SelectOption) => (
-        <option key={opt.value} value={opt.value} className="text-gray-900">{opt.label}</option>
-      ))}
-    </select>
-    {getFieldError(errors, field) && (
-      <p className="mt-1 text-sm text-red-600">{getFieldError(errors, field)}</p>
-    )}
-  </div>
-)
+const Select = ({ field, label, options, required = false, form, errors, handleChange, handleBlur }: SelectProps) => {
+  const { t } = useI18nContext()
+  
+  const errorMessage = getFieldError(errors, field)
+  const translatedError = errorMessage ? t(errorMessage, errorMessage) : null
+  
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2 text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        value={form[field]}
+        onChange={e => handleChange(field, e.target.value)}
+        onBlur={() => handleBlur(field)}
+        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900 text-base font-medium ${
+          hasFieldError(errors, field) ? 'border-red-500' : 'border-gray-300'
+        }`}
+      >
+        <option value="" className="text-gray-600">{label}</option>
+        {options.map((opt: SelectOption) => (
+          <option key={opt.value} value={opt.value} className="text-gray-900">{opt.label}</option>
+        ))}
+      </select>
+      {translatedError && (
+        <p className="mt-1 text-sm text-red-600">{translatedError}</p>
+      )}
+    </div>
+  )
+}
 
 function AddListing() {
   const { t } = useI18nContext()
   const { toasts, success, error: showError, removeToast } = useToast()
+  const { refreshVehicles, refreshBatteries } = useDataContext()
   const [currentStep, setCurrentStep] = useState(1)
   const [listingType, setListingType] = useState<'vehicle' | 'battery'>('vehicle')
   const [submitting, setSubmitting] = useState(false)
@@ -219,7 +234,28 @@ function AddListing() {
           year: Number(form.year),
           mileage: Number(form.mileage),
           images: uploadedImages,
-          specifications: { batteryAndCharging: { range: form.range } }
+          specifications: { 
+            batteryAndCharging: { 
+              range: form.range || '' 
+            },
+            performance: {
+              acceleration: '',
+              topSpeed: '',
+              horsepower: ''
+            },
+            dimensions: {
+              length: '',
+              width: '',
+              height: '',
+              weight: '',
+              cargoSpace: ''
+            },
+            warranty: {
+              basic: '',
+              powertrain: '',
+              battery: ''
+            }
+          }
         }
         result = await createVehicle(vehiclePayload)
       } else {
@@ -254,6 +290,13 @@ function AddListing() {
       }
 
       success(t('seller.addListing.validation.listingCreatedSuccess'))
+      
+      // Refresh cache to show new listing immediately
+      if (listingType === 'vehicle') {
+        await refreshVehicles()
+      } else {
+        await refreshBatteries()
+      }
       
       // Reset form
       setForm({
@@ -292,7 +335,27 @@ function AddListing() {
               <Select field="make" label={t('seller.addListing.fields.make')} required options={[
                 { value: 'tesla', label: 'Tesla' },
                 { value: 'nissan', label: 'Nissan' },
-                { value: 'bmw', label: 'BMW' }
+                { value: 'bmw', label: 'BMW' },
+                { value: 'mercedes', label: 'Mercedes-Benz' },
+                { value: 'audi', label: 'Audi' },
+                { value: 'volkswagen', label: 'Volkswagen' },
+                { value: 'hyundai', label: 'Hyundai' },
+                { value: 'kia', label: 'Kia' },
+                { value: 'ford', label: 'Ford' },
+                { value: 'chevrolet', label: 'Chevrolet' },
+                { value: 'toyota', label: 'Toyota' },
+                { value: 'honda', label: 'Honda' },
+                { value: 'mazda', label: 'Mazda' },
+                { value: 'porsche', label: 'Porsche' },
+                { value: 'jaguar', label: 'Jaguar' },
+                { value: 'volvo', label: 'Volvo' },
+                { value: 'polestar', label: 'Polestar' },
+                { value: 'rivian', label: 'Rivian' },
+                { value: 'lucid', label: 'Lucid Motors' },
+                { value: 'byd', label: 'BYD' },
+                { value: 'vinfast', label: 'VinFast' },
+                { value: 'mg', label: 'MG' },
+                { value: 'other', label: 'Other' }
               ]} form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
             ) : (
               <Input field="make" label={t('seller.addListing.fields.brand')} placeholder={t('seller.addListing.placeholders.brand')} required form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
@@ -312,14 +375,17 @@ function AddListing() {
       case 2:
         if (listingType === 'vehicle') return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input field="location" label="Location" placeholder="San Francisco, CA" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
-            <Select field="bodyType" label="Body Type" options={[
+            <Input field="location" label={t('seller.addListing.fields.location')} placeholder="San Francisco, CA" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
+            <Select field="bodyType" label={t('seller.addListing.fields.bodyType')} options={[
               { value: 'sedan', label: 'Sedan' },
               { value: 'suv', label: 'SUV' },
-              { value: 'hatchback', label: 'Hatchback' }
+              { value: 'hatchback', label: 'Hatchback' },
+              { value: 'coupe', label: 'Coupe' },
+              { value: 'wagon', label: 'Wagon' },
+              { value: 'truck', label: 'Truck' }
             ]} form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
-            <Input field="exteriorColor" label="Exterior Color" placeholder="Pearl White" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
-            <Input field="interiorColor" label="Interior Color" placeholder="Black" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
+            <Input field="exteriorColor" label={t('seller.addListing.fields.exteriorColor')} placeholder="Pearl White" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
+            <Input field="interiorColor" label={t('seller.addListing.fields.interiorColor')} placeholder="Black" form={form} errors={errors} handleChange={handleChange} handleBlur={handleBlur} />
           </div>
         )
         return (
@@ -352,12 +418,19 @@ function AddListing() {
       case 4:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-center text-gray-800">{t('seller.addListing.fields.uploadPhotos')}</h3>
+            <div className="flex items-center gap-2 justify-center mb-4">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-center text-gray-800">{t('seller.addListing.fields.uploadPhotos')}</h3>
+            </div>
             {imagePreviews.length === 0 ? (
               // Centered layout when no photos
               <div className="flex justify-center">
                 <label className="w-64 h-48 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                  <span className="text-4xl text-blue-600 mb-2">+</span>
+                  <svg className="w-16 h-16 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
                   <span className="text-sm text-gray-600 font-medium">{t('seller.addListing.fields.selectPhotos')}</span>
                   <span className="text-xs text-gray-500 mt-1">{t('seller.addListing.fields.clickOrDrag')}</span>
                   <input
@@ -377,14 +450,18 @@ function AddListing() {
                     <img src={src} alt="" className="w-full h-32 object-cover rounded-lg" />
                     <button
                       onClick={() => removeImage(i)}
-                      className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
                     >
-                      Remove
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     </button>
                   </div>
                 ))}
                 <label className="w-full h-32 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                  <span className="text-3xl text-blue-600">+</span>
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
                   <span className="text-xs text-gray-600">{t('seller.addListing.fields.selectPhotos')}</span>
                   <input
                     type="file"
@@ -567,7 +644,7 @@ function AddListing() {
                 }`}
               />
               {getFieldError(errors, 'description') && (
-                <p className="mt-1 text-sm text-red-600">{getFieldError(errors, 'description')}</p>
+                <p className="mt-1 text-sm text-red-600">{t(getFieldError(errors, 'description') || '', getFieldError(errors, 'description') || '')}</p>
               )}
             </div>
           </div>
@@ -581,41 +658,71 @@ function AddListing() {
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">{t('seller.addListing.title')}</h2>
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">{t('seller.addListing.title')}</h2>
         <p className="text-sm text-gray-600 mt-1">{t('seller.addListing.subtitle')}</p>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      {/* Product Type Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <button
           onClick={() => setListingType('vehicle')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            listingType === 'vehicle' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-300'
+          className={`p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
+            listingType === 'vehicle' 
+              ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-500 shadow-lg scale-105' 
+              : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
           }`}
         >
-          {t('seller.listings.vehicle')}
+          <svg className={`w-16 h-16 ${listingType === 'vehicle' ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+          </svg>
+          <span className={`text-lg font-bold ${listingType === 'vehicle' ? 'text-blue-700' : 'text-gray-600'}`}>
+            {t('seller.listings.vehicle')}
+          </span>
         </button>
         <button
           onClick={() => setListingType('battery')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            listingType === 'battery' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-300'
+          className={`p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
+            listingType === 'battery' 
+              ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-500 shadow-lg scale-105' 
+              : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
           }`}
         >
-          {t('seller.listings.battery')}
+          <svg className={`w-16 h-16 ${listingType === 'battery' ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span className={`text-lg font-bold ${listingType === 'battery' ? 'text-blue-700' : 'text-gray-600'}`}>
+            {t('seller.listings.battery')}
+          </span>
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-8">
-        {steps.map((step, i) => (
+      {/* Progress Steps */}
+      <div className="flex items-center justify-between mb-8 px-4">{steps.map((step, i) => (
           <div key={i} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              i + 1 <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
+              i + 1 < currentStep 
+                ? 'bg-green-600 text-white' 
+                : i + 1 === currentStep 
+                  ? 'bg-blue-600 text-white scale-110 shadow-lg' 
+                  : 'bg-gray-200 text-gray-600'
             }`}>
-              {i + 1}
+              {i + 1 < currentStep ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                i + 1
+              )}
             </div>
-            <span className={`ml-2 text-xs font-medium ${
-              i + 1 <= currentStep ? 'text-gray-800' : 'text-gray-600'
+            <span className={`ml-2 text-xs font-medium hidden md:block ${
+              i + 1 <= currentStep ? 'text-gray-800' : 'text-gray-500'
             }`}>{step}</span>
-            {i < steps.length - 1 && <div className="w-8 h-0.5 bg-gray-400 ml-2" />}
+            {i < steps.length - 1 && (
+              <div className={`w-8 h-1 ml-2 rounded transition-all duration-200 ${
+                i + 1 < currentStep ? 'bg-green-600' : 'bg-gray-300'
+              }`} />
+            )}
           </div>
         ))}
       </div>
@@ -624,29 +731,51 @@ function AddListing() {
         {renderStep()}
       </div>
 
-      <div className="flex justify-between">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between gap-4">
         <button
           onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
           disabled={currentStep === 1}
-          className="px-6 py-2 border border-gray-400 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-all shadow-sm hover:shadow-md disabled:hover:shadow-none flex items-center gap-2"
         >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           {t('seller.addListing.buttons.previous')}
         </button>
         
         {currentStep < steps.length ? (
           <button
             onClick={() => setCurrentStep(currentStep + 1)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md"
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
           >
             {t('seller.addListing.buttons.next')}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         ) : (
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 font-medium shadow-md"
+            className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-60 disabled:cursor-not-allowed font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
           >
-            {submitting ? t('seller.addListing.buttons.creating') : t('seller.addListing.buttons.createListing')}
+            {submitting ? (
+              <>
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {t('seller.addListing.buttons.creating')}
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {t('seller.addListing.buttons.createListing')}
+              </>
+            )}
           </button>
         )}
       </div>

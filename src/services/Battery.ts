@@ -144,10 +144,10 @@ export const createBattery = async (payload: CreateBatteryRequest): Promise<Batt
   }
 }
 
-// Get all batteries
-export const getBatteries = async (): Promise<BatteriesResponse> => {
+// Get batteries with pagination
+export const getBatteries = async (page = 1, limit = 10): Promise<BatteriesResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/batteries/`, {
+    const response = await fetch(`${API_BASE_URL}/batteries/?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -165,6 +165,52 @@ export const getBatteries = async (): Promise<BatteriesResponse> => {
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to fetch batteries',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+// Get all batteries from all pages
+export const getAllBatteries = async (): Promise<BatteriesResponse> => {
+  try {
+    // First, get the first page to know total pages
+    const firstPageResponse = await getBatteries(1, 10)
+    if (!firstPageResponse.success || !firstPageResponse.data) {
+      return firstPageResponse
+    }
+
+    let allBatteries = firstPageResponse.data.batteries || []
+    
+    // Check if response includes pagination info
+    const responseData = firstPageResponse.data as any
+    const totalPages = responseData.totalPages || 1
+    
+    // If there are more pages, fetch them all
+    if (totalPages > 1) {
+      const pagePromises = []
+      for (let page = 2; page <= totalPages; page++) {
+        pagePromises.push(getBatteries(page, 10))
+      }
+      
+      const pageResponses = await Promise.all(pagePromises)
+      
+      // Combine all batteries
+      for (const response of pageResponses) {
+        if (response.success && response.data?.batteries) {
+          allBatteries = [...allBatteries, ...response.data.batteries]
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      message: 'All batteries fetched successfully',
+      data: { batteries: allBatteries }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to fetch all batteries',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }

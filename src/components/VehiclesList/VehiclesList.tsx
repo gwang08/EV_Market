@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useI18nContext } from '../../providers/I18nProvider'
-import { getVehicles, type Vehicle, getCurrentUserId } from '../../services'
+import { useDataContext } from '../../contexts/DataContext'
+import { type Vehicle, getCurrentUserId } from '../../services'
 import colors from '../../Utils/Color'
 import VerifiedBadge from '../common/VerifiedBadge'
 import { ListSkeleton } from '../common/Skeleton'
@@ -13,13 +14,41 @@ export default function VehiclesList() {
   const { t } = useI18nContext()
   const router = useRouter()
   const toast = useToast()
+  const { vehicles: allVehicles, isLoadingVehicles, fetchVehicles } = useDataContext()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [selectedBrand, setSelectedBrand] = useState('')
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([])
+
+  // Fetch vehicles on mount (will use cache if available)
+  useEffect(() => {
+    fetchVehicles()
+  }, [fetchVehicles])
+
+  // Filter for available vehicles when data loads
+  useEffect(() => {
+    const filterAvailableVehicles = async () => {
+      if (!allVehicles) return
+      
+      const currentUserId = await getCurrentUserId()
+      
+      const availableVehicles = allVehicles.filter(vehicle => {
+        const isAvailable = vehicle.status === 'AVAILABLE'
+        const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
+        return isAvailable && isNotOwnVehicle
+      })
+      
+      setVehicles(availableVehicles)
+      setFilteredVehicles(availableVehicles)
+      
+      if (availableVehicles.length === 0) {
+        toast.info(t('vehicles.noVehicles', 'Hiện tại không có xe nào khả dụng'))
+      }
+    }
+    
+    filterAvailableVehicles()
+  }, [allVehicles, toast, t])
 
   // Get unique brands from vehicles
   const uniqueBrands = React.useMemo(() => {
@@ -32,46 +61,6 @@ export default function VehiclesList() {
   const handleVehicleClick = (vehicleId: string) => {
     router.push(`/vehicle/${vehicleId}`)
   }
-
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        // Get current user ID (if logged in)
-        const currentUserId = await getCurrentUserId()
-        
-        const response = await getVehicles()
-        if (response.success && response.data?.vehicles) {
-          // Filter vehicles:
-          // 1. Only show vehicles with status === 'AVAILABLE'
-          // 2. Don't show current user's vehicles
-          const availableVehicles = response.data.vehicles.filter(vehicle => {
-            const isAvailable = vehicle.status === 'AVAILABLE'
-            const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
-            return isAvailable && isNotOwnVehicle
-          })
-          
-          setVehicles(availableVehicles)
-          setFilteredVehicles(availableVehicles)
-          
-          // Show info toast if no vehicles available
-          if (availableVehicles.length === 0) {
-            toast.info(t('vehicles.noVehicles', 'Hiện tại không có xe nào khả dụng'))
-          }
-        } else {
-          setError(response.message || 'Failed to fetch vehicles')
-          toast.error(response.message || t('vehicles.fetchError', 'Không thể tải danh sách xe'))
-        }
-      } catch (err) {
-        const errorMsg = 'Failed to fetch vehicles'
-        setError(errorMsg)
-        toast.error(t('vehicles.fetchError', 'Không thể tải danh sách xe'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchVehicles()
-  }, [toast, t])
 
   // Filter and sort vehicles
   useEffect(() => {
@@ -102,7 +91,7 @@ export default function VehiclesList() {
     setFilteredVehicles(filtered)
   }, [vehicles, searchTerm, sortBy, selectedBrand])
 
-  if (loading) {
+  if (isLoadingVehicles) {
     return (
       <div className="container mx-auto px-4 py-8">
         {/* Header Skeleton */}
@@ -117,22 +106,6 @@ export default function VehiclesList() {
         
         {/* Grid Skeleton */}
         <ListSkeleton count={8} showBadge={true} />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-red-600 text-lg">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
       </div>
     )
   }
@@ -245,6 +218,7 @@ export default function VehiclesList() {
                   alt={vehicle.title}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
                   unoptimized={true}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;

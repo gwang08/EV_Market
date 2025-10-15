@@ -44,14 +44,14 @@ const RULES: ValidationRules = {
   batteryHealth: { min: 0, max: 100, required: false }
 };
   
-// Single field validation
+// Single field validation - returns translation key instead of hardcoded message
 export function validateField(
   fieldName: string, 
   value: any, 
   listingType: 'vehicle' | 'battery'
 ): string | null {
   if (!value && RULES[fieldName as keyof typeof RULES]?.required) {
-    return `${fieldName} is required`;
+    return `seller.addListing.validation.${fieldName}Required`;
   }
   if (!value) return null;
 
@@ -60,44 +60,47 @@ export function validateField(
 
   switch (fieldName) {
     case 'title':
-      if (value.trim().length < rule.min) return `Minimum ${rule.min} characters`;
-      if (rule.max && value.trim().length > rule.max) return `Maximum ${rule.max} characters`;
+      if (value.trim().length < rule.min) return 'seller.addListing.validation.titleMinLength';
+      if (rule.max && value.trim().length > rule.max) return 'seller.addListing.validation.titleMaxLength';
       break;
 
     case 'description':
-      if (value.trim().length < rule.min) return `Minimum ${rule.min} characters`;
-      if (rule.max && value.trim().length > rule.max) return `Maximum ${rule.max} characters`;
+      if (value.trim().length < rule.min) return 'seller.addListing.validation.descriptionMinLength';
+      if (rule.max && value.trim().length > rule.max) return 'seller.addListing.validation.descriptionMaxLength';
       break;
 
     case 'price':
+      if (isNaN(numValue) || numValue <= 0) return 'seller.addListing.validation.pricePositive';
+      break;
+
     case 'batteryCapacity':
-      if (isNaN(numValue) || numValue <= 0) return 'Must be a positive number';
+      if (isNaN(numValue) || numValue <= 0) return 'seller.addListing.validation.batteryCapacityPositive';
       break;
 
     case 'make':
-      if (value.trim().length < rule.min) return `Minimum ${rule.min} characters`;
+      if (value.trim().length < rule.min) return 'seller.addListing.validation.makeMinLength';
       break;
 
     case 'model':
       if (listingType === 'vehicle' && value.trim().length < rule.min) 
-        return 'Model is required';
+        return 'seller.addListing.validation.modelRequired';
       break;
 
     case 'year':
       if (isNaN(numValue) || numValue < rule.min || (rule.max && numValue > rule.max))
-        return `Must be between ${rule.min} and ${rule.max || currentYear + 1}`;
+        return 'seller.addListing.validation.yearRange';
       break;
 
     case 'mileage':
       if (listingType === 'vehicle') {
         if (isNaN(numValue) || numValue < 0 || !Number.isInteger(numValue))
-          return 'Must be a non-negative integer';
+          return 'seller.addListing.validation.mileageInteger';
       }
       break;
 
     case 'batteryHealth':
       if (isNaN(numValue) || numValue < 0 || numValue > 100)
-        return 'Must be between 0 and 100';
+        return 'seller.addListing.validation.batteryHealthRange';
       break;
   }
 
