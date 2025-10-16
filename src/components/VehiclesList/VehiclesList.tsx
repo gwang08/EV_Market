@@ -35,8 +35,9 @@ export default function VehiclesList() {
       
       const availableVehicles = allVehicles.filter(vehicle => {
         const isAvailable = vehicle.status === 'AVAILABLE'
+        const isNotSold = vehicle.status !== 'SOLD'
         const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
-        return isAvailable && isNotOwnVehicle
+        return isAvailable && isNotSold && isNotOwnVehicle
       })
       
       setVehicles(availableVehicles)
