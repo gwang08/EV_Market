@@ -43,7 +43,8 @@
     "language": "Language",
     "walletManagement": "My Wallet ",
     "currentBalance": "Current Balance",
-    "wallet": "My Wallet"
+    "wallet": "My Wallet",
+    "purchaseHistory": "Purchase History"
   },
   "home": {
     "title": "Home",
@@ -419,7 +420,7 @@
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
       "passwordMismatch": "Password confirmation does not match!",
-      "registerSuccess": "Registration successful! Redirecting to login page...",
+      "registerSuccess": "Registration successful!",
       "registerFailed": "Registration failed",
       "emailExists": "This email is already in use",
       "passwordTooShort": "Password must be at least 8 characters",
@@ -667,5 +668,45 @@
     "maximumAmount": "Maximum deposit amount is 50,000,000 VND.",
     "loadError": "Failed to load wallet data. Please refresh the page.",
     "cancel": "Cancel"
+  },
+  "chatbot": {
+    "title": "EVmarket Assistant",
+    "status": "Online",
+    "welcome": "Hello! I'm the EVmarket virtual assistant. I can help you find the perfect electric vehicle or battery. What can I help you with?",
+    "placeholder": "Type your question here...",
+    "error": "Sorry, an error occurred. Please try again later.",
+    "sendButton": "Send",
+    "closeButton": "Close",
+    "minimizeButton": "Minimize"
+  },
+  "purchaseHistory": {
+    "title": "Purchase History",
+    "subtitle": "View and manage your purchase history",
+    "totalPurchases": "Total Purchases",
+    "completed": "Completed",
+    "loadError": "Failed to load purchase history",
+    "errorTitle": "Error",
+    "tryAgain": "Try Again",
+    "previous": "Previous",
+    "next": "Next",
+    "noPurchases": "No Purchases Yet",
+    "noPurchasesDesc": "You haven't made any purchases yet. Start exploring our electric vehicles and batteries!",
+    "browseCatalog": "Browse Catalog",
+    "orderId": "Order ID",
+    "paymentMethod": "Payment Method",
+    "transactionDate": "Transaction Date",
+    "viewDetails": "View Details",
+    "writeReview": "Write Review",
+    "reviewed": "Reviewed",
+    "status": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "productType": {
+      "vehicle": "Vehicle",
+      "battery": "Battery"
+    }
   }
 }

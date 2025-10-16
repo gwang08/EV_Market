@@ -38,7 +38,8 @@
     "notifications": "Thông báo",
     "profile": "Hồ sơ",
     "language": "Ngôn ngữ",
-    "walletManagement": "Quản lý ví"
+    "walletManagement": "Quản lý ví",
+    "purchaseHistory": "Lịch sử mua hàng"
   },
   "home": {
     "title": "Trang chủ",
@@ -408,7 +409,7 @@
       "haveAccount": "Đã có tài khoản?",
       "signIn": "Đăng nhập",
       "passwordMismatch": "Mật khẩu xác nhận không khớp!",
-      "registerSuccess": "Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...",
+      "registerSuccess": "Đăng ký thành công!",
       "registerFailed": "Đăng ký thất bại",
       "emailExists": "Email này đã được sử dụng",
       "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
@@ -635,5 +636,65 @@
     "maximumAmount": "Số tiền nạp tối đa là 50.000.000 VND.",
     "loadError": "Không thể tải dữ liệu ví. Vui lòng làm mới trang.",
     "cancel": "Hủy"
+  },
+  "chatbot": {
+    "title": "Trợ lý EVmarket",
+    "status": "Đang hoạt động",
+    "welcome": "Xin chào! Tôi là trợ lý ảo của EVmarket. Tôi có thể giúp bạn tìm xe điện hoặc pin phù hợp. Bạn cần gì?",
+    "placeholder": "Nhập câu hỏi của bạn...",
+    "error": "Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại sau.",
+    "sendButton": "Gửi",
+    "closeButton": "Đóng",
+    "minimizeButton": "Thu nhỏ"
+  },
+  "purchaseHistory": {
+    "title": "Lịch sử mua hàng",
+    "subtitle": "Xem và quản lý lịch sử mua hàng của bạn",
+    "totalPurchases": "Tổng số đơn hàng",
+    "completed": "Hoàn thành",
+    "loadError": "Không thể tải lịch sử mua hàng",
+    "errorTitle": "Lỗi",
+    "tryAgain": "Thử lại",
+    "previous": "Trước",
+    "next": "Sau",
+    "noPurchases": "Chưa có đơn hàng",
+    "noPurchasesDesc": "Bạn chưa mua hàng nào. Hãy khám phá các xe điện và pin của chúng tôi!",
+    "browseCatalog": "Xem danh mục",
+    "orderId": "Mã đơn hàng",
+    "paymentMethod": "Phương thức thanh toán",
+    "transactionDate": "Ngày giao dịch",
+    "viewDetails": "Xem chi tiết",
+    "writeReview": "Viết đánh giá",
+    "reviewed": "Đã đánh giá",
+    "status": {
+      "completed": "Hoàn thành",
+      "pending": "Đang xử lý",
+      "cancelled": "Đã hủy",
+      "refunded": "Đã hoàn tiền"
+    },
+    "productType": {
+      "vehicle": "Xe điện",
+      "battery": "Pin"
+    }
+  },
+  "sellerProfile": {
+    "verifiedSeller": "Người bán đã xác minh",
+    "memberSince": "Thành viên từ",
+    "reviews": "đánh giá",
+    "statistics": "Thống kê người bán",
+    "basedOnReviews": "Dựa trên {count} đánh giá",
+    "totalReviews": "Tổng đánh giá",
+    "productTypes": "Loại sản phẩm",
+    "customerReviews": "Đánh giá khách hàng",
+    "reviewsDescription": "Xem khách hàng nói gì về người bán này",
+    "noReviewsYet": "Chưa có đánh giá",
+    "noReviewsDescription": "Người bán này chưa nhận được đánh giá nào.",
+    "edited": "Đã chỉnh sửa",
+    "product": "Sản phẩm",
+    "type": "Loại",
+    "loadingProfile": "Đang tải hồ sơ người bán...",
+    "profileNotFound": "Không tìm thấy hồ sơ người bán",
+    "goBack": "Quay lại",
+    "greatExperience": "Trải nghiệm tuyệt vời với người bán này!"
   }
 }

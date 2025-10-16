@@ -39,8 +39,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await getAllVehicles()
       if (response.success && response.data?.vehicles) {
-        setVehicles(response.data.vehicles)
-        console.log(`✅ Loaded ${response.data.vehicles.length} vehicles`)
+        // Filter out SOLD vehicles globally
+        const availableVehicles = response.data.vehicles.filter(
+          (vehicle: Vehicle) => vehicle.status !== 'SOLD'
+        )
+        setVehicles(availableVehicles)
+        console.log(`✅ Loaded ${availableVehicles.length} available vehicles (filtered ${response.data.vehicles.length - availableVehicles.length} sold)`)
       } else {
         setError(response.message || 'Failed to fetch vehicles')
       }
@@ -68,8 +72,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await getAllBatteries()
       if (response.success && response.data?.batteries) {
-        setBatteries(response.data.batteries)
-        console.log(`✅ Loaded ${response.data.batteries.length} batteries`)
+        // Filter out SOLD batteries globally
+        const availableBatteries = response.data.batteries.filter(
+          (battery: Battery) => battery.status !== 'SOLD'
+        )
+        setBatteries(availableBatteries)
+        console.log(`✅ Loaded ${availableBatteries.length} available batteries (filtered ${response.data.batteries.length - availableBatteries.length} sold)`)
       } else {
         setError(response.message || 'Failed to fetch batteries')
       }

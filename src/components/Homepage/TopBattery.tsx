@@ -32,8 +32,9 @@ function TopBattery() {
       
       const filteredBatteries = allBatteries.filter(battery => {
         const isAvailable = battery.status === 'AVAILABLE'
+        const isNotSold = battery.status !== 'SOLD'
         const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
-        return isAvailable && isNotOwnBattery
+        return isAvailable && isNotSold && isNotOwnBattery
       })
       
       // Take only first 4 batteries for top deals
