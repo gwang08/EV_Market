@@ -117,6 +117,14 @@ export default function Checkout() {
           const res = await getVehicleById(listingId)
           if (!mounted) return
           const v = (res.data && (res.data as any).vehicle) ? (res.data as any).vehicle : (res.data as any)
+          
+          // Check if vehicle is already sold
+          if (v?.status === 'SOLD') {
+            toast.error('Sản phẩm này đã được bán. Vui lòng chọn sản phẩm khác.')
+            setTimeout(() => router.push('/vehicles'), 1500)
+            return
+          }
+          
           setVehicle(v as Vehicle)
           const price = (v?.price as number) || 0
           // Simple fee model: 1% service fee, 10% VAT on product price, no discount
@@ -130,6 +138,14 @@ export default function Checkout() {
           const res = await getBatteryById(listingId)
           if (!mounted) return
           const b = (res.data && (res.data as any).battery) ? (res.data as any).battery : (res.data as any)
+          
+          // Check if battery is already sold
+          if (b?.status === 'SOLD') {
+            toast.error('Sản phẩm này đã được bán. Vui lòng chọn sản phẩm khác.')
+            setTimeout(() => router.push('/batteries'), 1500)
+            return
+          }
+          
           setBattery(b as Battery)
           const price = (b?.price as number) || 0
           setOrderPricing({
@@ -148,7 +164,7 @@ export default function Checkout() {
     }
     load()
     return () => { mounted = false }
-  }, [listingId, listingType])
+  }, [listingId, listingType, toast, router])
 
   // Load wallet balance on mount
   useEffect(() => {

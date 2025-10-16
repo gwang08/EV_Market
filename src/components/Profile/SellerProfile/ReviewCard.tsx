@@ -47,11 +47,11 @@ function ReviewCard({ review }: ReviewCardProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
       {/* Review Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
+      <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
             {review.buyer.avatar ? (
               <Image
                 src={review.buyer.avatar}
@@ -62,36 +62,36 @@ function ReviewCard({ review }: ReviewCardProps) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-400 to-blue-500">
-                <span className="text-white text-sm font-bold">
+                <span className="text-white text-xs md:text-sm font-bold">
                   {review.buyer.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
           </div>
-          <div>
-            <p className="font-semibold" style={{color: colors.Text}}>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm md:text-base truncate" style={{color: colors.Text}}>
               {review.buyer.name}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1">
                 {renderStars(review.rating)}
               </div>
-              <span className="text-sm" style={{color: colors.SubText}}>
+              <span className="text-xs md:text-sm whitespace-nowrap" style={{color: colors.SubText}}>
                 {new Date(review.createdAt).toLocaleDateString()}
               </span>
             </div>
           </div>
         </div>
         {review.hasBeenEdited && (
-          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap flex-shrink-0">
             {t('sellerProfile.edited')}
           </span>
         )}
       </div>
 
       {/* Product Info */}
-      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-        <p className="text-sm font-medium" style={{color: colors.Text}}>
+      <div className="mb-4 p-2 md:p-3 bg-gray-50 rounded-lg">
+        <p className="text-xs md:text-sm font-medium truncate" style={{color: colors.Text}}>
           {t('sellerProfile.product')}: {review.productTitle}
         </p>
         <p className="text-xs" style={{color: colors.SubText}}>
@@ -100,7 +100,7 @@ function ReviewCard({ review }: ReviewCardProps) {
       </div>
 
       {/* Review Comment */}
-      <p className="mb-4 leading-relaxed" style={{color: colors.Description}}>
+      <p className="mb-4 leading-relaxed text-sm md:text-base" style={{color: colors.Description}}>
         {/* Filter out transaction reference text */}
         {review.comment.replace(/Review for transaction [a-zA-Z0-9]+/g, '').trim() || t('sellerProfile.greatExperience')}
       </p>
@@ -137,27 +137,27 @@ function ReviewCard({ review }: ReviewCardProps) {
               <>
                 <button
                   onClick={prevMedia}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition-all"
+                  className="absolute left-1 md:left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-1.5 md:p-2 shadow-lg transition-all"
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft size={16} className="md:w-5 md:h-5" />
                 </button>
                 <button
                   onClick={nextMedia}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition-all"
+                  className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-1.5 md:p-2 shadow-lg transition-all"
                 >
-                  <ChevronRight size={20} />
+                  <ChevronRight size={16} className="md:w-5 md:h-5" />
                 </button>
               </>
             )}
           </div>
           
           {review.mediaUrls.length > 1 && (
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-1.5 md:gap-2">
               {review.mediaUrls.map((_: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setCurrentMediaIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
+                  className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-colors ${
                     index === currentMediaIndex ? 'bg-blue-600' : 'bg-gray-300'
                   }`}
                 />

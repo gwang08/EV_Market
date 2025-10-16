@@ -219,7 +219,7 @@ function Header() {
 
                   {/* Profile Dropdown */}
                   {profileDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                       <div className="py-2">
                         <a
                           href="/profile"
@@ -229,6 +229,17 @@ function Header() {
                         >
                           <User size={16} />
                           {t("header.profileSettings", "Profile Settings")}
+                        </a>
+                        <a
+                          href="/purchase-history"
+                          className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 transition-colors duration-300"
+                          style={{ color: colors.Text }}
+                          onClick={() => setProfileDropdownOpen(false)}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          {t("header.purchaseHistory", "Purchase History")}
                         </a>
                         <a
                           href="/wallet"
@@ -388,88 +399,81 @@ function Header() {
                 </div>
 
                 {/* Mobile Icons */}
-                <div className="flex justify-around pt-2">
-                  {/* Notifications - Only show when logged in */}
-                  {isLoggedIn && (
-                    <button className="flex flex-col items-center gap-1 p-2">
-                      <Image
-                        src="/Notifications.svg"
-                        alt="Notifications"
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                      <span
-                        className="text-xs"
-                        style={{ color: colors.SubText }}
-                      >
-                        {t("header.notifications", "Notifications")}
-                      </span>
-                    </button>
-                  )}
-
+                <div className="flex flex-col gap-3 pt-2">
                   {isLoggedIn ? (
-                    <div className="space-y-2">
-                      <a
-                        href="/profile"
-                        className="flex flex-col items-center gap-1 p-2"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Image
-                          src="/Profile.svg"
-                          alt="Profile"
-                          width={20}
-                          height={20}
-                          className="w-5 h-5"
-                        />
-                        <span
-                          className="text-xs"
-                          style={{ color: colors.SubText }}
+                    <>
+                      {/* Profile Links */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <a
+                          href="/profile"
+                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
                         >
-                          {t("header.profile", "Profile")}
-                        </span>
-                      </a>
-                      <a
-                        href="/wallet"
-                        className="flex flex-col items-center gap-1 p-2"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Image
-                          src="/Wallet.svg"
-                          alt="Wallet"
-                          width={20}
-                          height={20}
-                          className="w-5 h-5"
-                        />
-                        <span
-                          className="text-xs"
-                          style={{ color: colors.SubText }}
+                          <User size={18} />
+                          <span className="text-sm font-medium" style={{ color: colors.Text }}>
+                            {t("header.profile", "Profile")}
+                          </span>
+                        </a>
+                        <a
+                          href="/wallet"
+                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
                         >
-                          {t("header.wallet", "Ví của tôi")}
-                        </span>
-                      </a>
+                          <Wallet size={18} />
+                          <span className="text-sm font-medium" style={{ color: colors.Text }}>
+                            {t("header.wallet", "Ví của tôi")}
+                          </span>
+                        </a>
+                        <a
+                          href="/purchase-history"
+                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          <span className="text-sm font-medium" style={{ color: colors.Text }}>
+                            {t("header.purchaseHistory", "Orders")}
+                          </span>
+                        </a>
+                        <a
+                          href="/sell"
+                          className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <List size={18} />
+                          <span className="text-sm font-medium" style={{ color: colors.Text }}>
+                            {t("header.myListings", "Listings")}
+                          </span>
+                        </a>
+                      </div>
+
+                      {/* Logout Button */}
                       <button
                         onClick={() => {
                           handleLogout();
                           setMobileMenuOpen(false);
                         }}
                         disabled={isLoggingOut}
-                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isLoggingOut ? (
-                          <div className="flex items-center justify-center">
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             {t("header.loggingOut", "Logging out...")}
-                          </div>
+                          </>
                         ) : (
-                          t("header.logout", "Logout")
+                          <>
+                            <LogOut size={18} />
+                            {t("header.logout", "Logout")}
+                          </>
                         )}
                       </button>
-                    </div>
+                    </>
                   ) : (
                     <a
                       href="/login"
-                      className="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white text-xs font-medium rounded-lg transition-all duration-300 inline-block shadow-lg"
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-300 inline-block shadow-lg text-center"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {t("common.login")}

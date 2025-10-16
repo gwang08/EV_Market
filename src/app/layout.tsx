@@ -5,6 +5,7 @@ import { I18nProvider } from "../providers/I18nProvider";
 import { ToastProvider } from "../providers/ToastProvider";
 import { DataProvider } from "../contexts/DataContext";
 import { Analytics } from "@vercel/analytics/next"
+import ChatbotWidget from "../components/ChatbotWidget/ChatbotWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
           <ToastProvider>
             <DataProvider>
               {children}
+              <ChatbotWidget />
             </DataProvider>
           </ToastProvider>
         </I18nProvider>

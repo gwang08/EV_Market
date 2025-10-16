@@ -67,6 +67,20 @@ export {
   WalletError
 } from './Wallet'
 
+// Export Chatbot services
+export {
+  sendChatMessage,
+  parseVehicleLinks,
+  formatChatMessage
+} from './Chatbot'
+
+// Export Transaction services
+export {
+  getMyTransactions,
+  getStatusColor,
+  getPaymentGatewayName
+} from './Transaction'
+
 // Export types
 export type {
   LoginRequest,
@@ -109,3 +123,16 @@ export type {
   DepositRequest,
   DepositResponse
 } from './Wallet'
+
+export type {
+  ChatMessage,
+  ChatbotResponse
+} from './Chatbot'
+
+export type {
+  Transaction,
+  TransactionReview,
+  TransactionVehicle,
+  TransactionBattery,
+  TransactionsResponse
+} from './Transaction'

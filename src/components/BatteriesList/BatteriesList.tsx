@@ -35,8 +35,9 @@ export default function BatteriesList() {
       
       const availableBatteries = allBatteries.filter(battery => {
         const isAvailable = battery.status === 'AVAILABLE'
+        const isNotSold = battery.status !== 'SOLD'
         const isNotOwnBattery = !currentUserId || battery.sellerId !== currentUserId
-        return isAvailable && isNotOwnBattery
+        return isAvailable && isNotSold && isNotOwnBattery
       })
       
       setBatteries(availableBatteries)

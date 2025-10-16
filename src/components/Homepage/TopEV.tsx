@@ -32,8 +32,9 @@ export default function TopEV() {
       
       const filteredVehicles = allVehicles.filter(vehicle => {
         const isAvailable = vehicle.status === 'AVAILABLE'
+        const isNotSold = vehicle.status !== 'SOLD'
         const isNotOwnVehicle = !currentUserId || vehicle.sellerId !== currentUserId
-        return isAvailable && isNotOwnVehicle
+        return isAvailable && isNotSold && isNotOwnVehicle
       })
       
       // Take only first 4 vehicles for top deals
