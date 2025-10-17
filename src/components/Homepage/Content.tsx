@@ -1,89 +1,74 @@
-"use client"
-import React from 'react'
-import colors from '../../Utils/Color'
-import Image from 'next/image'
-import { useI18nContext } from '../../providers/I18nProvider'
-import { isAuthenticated } from '../../services'
-import { useRouter } from 'next/navigation'
+"use client";
+import React from "react";
+import Link from "next/link";
+import { useI18nContext } from "../../providers/I18nProvider";
+import { isAuthenticated } from "../../services";
+import { useRouter } from "next/navigation";
 
 function Content() {
-  const { t } = useI18nContext()
-  const router = useRouter()
-  
-  // Handle navigation with authentication check
+  const { t } = useI18nContext();
+  const router = useRouter();
+
   const handleSellNavigation = () => {
     if (!isAuthenticated()) {
-      router.push('/login')
-      return
+      router.push("/login");
+      return;
     }
-    router.push('/sell')
-  }
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 px-6 py-16">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <div className="space-y-8">
-            <h1 className="text-3xl lg:text-4xl font-bold leading-tight" style={{color: colors.Text}}>
-              {t('homepage.hero.title', 'The Trusted Marketplace')}
-              <br />
-              {' '}
-              <span className="bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
-                {t('homepage.hero.subtitle', 'Second-hand EVs')}
-              </span>
-            </h1>
-            
-            <div className="space-y-4">
-              <p className="text-lg" style={{color: colors.SubText}}>
-                {t('homepage.hero.description1', 'Buy and sell pre-owned electric vehicles and batteries with confidence.')}
-              </p>
-              <p className="text-lg" style={{color: colors.SubText}}>
-                {t('homepage.hero.description2', 'Verified sellers, battery health reports, and secure transactions.')}
-              </p>
-            </div>
+    router.push("/sell");
+  };
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a 
-                href="/browse"
-                className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-center inline-block"
-              >
-                {t('homepage.hero.browseBtn', 'Browse EVs')}
-              </a>
-              <button 
-                onClick={handleSellNavigation}
-                className="px-8 py-4 border-2 font-semibold rounded-lg transition-all duration-300 hover:shadow-lg text-center"
-                style={{
-                  color: colors.Text,
-                  borderColor: colors.SubText
-                }}
-              >
-                {t('homepage.hero.sellBtn', 'Sell Your EV')}
-              </button>
+  return (
+    <section className="relative min-h-screen overflow-hidden">
+      {/* Content Container */}
+      <div className="relative h-full flex items-start justify-center px-4 sm:px-6 pt-32 sm:pt-36 md:pt-40 lg:pt-45 z-10">
+        <div className="text-center space-y-6 sm:space-y-8 max-w-5xl w-full">
+          {/* Main Heading with enhanced styling */}
+          <div className="space-y-4 sm:space-y-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 drop-shadow-sm px-4">
+              {t("homepage.hero.title", "Design & High Quality")}
+            </h1>
+
+            {/* Elegant separator */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
+              <div className="w-12 sm:w-16 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-blue-500 rounded-full"></div>
+              <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50 animate-pulse"></div>
+              <div className="w-12 sm:w-16 h-0.5 bg-gradient-to-l from-transparent via-blue-500 to-blue-500 rounded-full"></div>
             </div>
           </div>
 
-          {/* Right Content - Car Image */}
-          <div className="relative">
-            <div className="relative z-10">
-              <Image
-                src="/Homepage/Car.png"
-                alt="Electric Vehicle"
-                width={600}
-                height={400}
-                className="w-full h-auto object-contain"
-                priority
-              />
-            </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute top-4 right-4 w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-full opacity-20 blur-xl"></div>
-            <div className="absolute bottom-8 left-8 w-12 h-12 bg-gradient-to-br from-blue-400 to-green-500 rounded-full opacity-25 blur-lg"></div>
+          {/* Description with better spacing */}
+          <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-xl mx-auto leading-relaxed font-normal px-6 sm:px-4">
+            {t(
+              "homepage.hero.description1",
+              "Sale of high-quality branded sneakers in a wide range with unique designs."
+            )}
+          </p>
+
+          {/* Enhanced CTA Buttons */}
+          <div className="flex flex-row gap-3 sm:gap-4 justify-center pt-4 sm:pt-6 px-4">
+            <Link
+              href="/browse"
+              className="group relative px-6 sm:px-12 py-3 sm:py-4 bg-blue-600 text-white font-medium text-sm sm:text-base rounded-full overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] text-center flex-1 sm:flex-initial"
+            >
+              <span className="relative z-10">
+                {t("homepage.hero.browseBtn", "Open Store")}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            </Link>
+
+            <button
+              onClick={handleSellNavigation}
+              className="group relative px-6 sm:px-12 py-3 sm:py-4 bg-white/70 backdrop-blur-sm text-slate-700 font-medium text-sm sm:text-base rounded-full transition-all duration-500 hover:bg-white hover:shadow-xl hover:scale-[1.02] text-center border border-slate-200/50 flex-1 sm:flex-initial"
+            >
+              <span className="relative z-10">
+                {t("homepage.hero.sellBtn", "Explore More")}
+              </span>
+            </button>
           </div>
         </div>
       </div>
-    </div>
-  )
+    </section>
+  );
 }
 
-export default Content
+export default Content;
