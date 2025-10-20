@@ -3,17 +3,14 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useI18nContext } from "../../providers/I18nProvider";
 import { getVehicles, Vehicle } from "../../services/Vehicle";
-import { removeBackground } from "@imgly/background-removal";
+import { motion, AnimatePresence, easeOut, easeIn } from "framer-motion";
 
 function ProductShowcase() {
   const { t } = useI18nContext();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [processedImages, setProcessedImages] = useState<Map<string, string>>(
-    new Map()
-  );
-  const [processingImage, setProcessingImage] = useState(false);
+  const [direction, setDirection] = useState<1 | -1>(1);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -37,56 +34,44 @@ function ProductShowcase() {
     fetchVehicles();
   }, []);
 
-  // Remove background from current vehicle image
-  useEffect(() => {
-    const processCurrentImage = async () => {
-      if (!currentVehicle?.images?.[0]) return;
-
-      const imageUrl = currentVehicle.images[0];
-
-      // Check if already processed
-      if (processedImages.has(imageUrl)) return;
-
-      setProcessingImage(true);
-      try {
-        // Remove background
-        const blob = await removeBackground(imageUrl);
-
-        // Convert blob to data URL
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const dataUrl = reader.result as string;
-          setProcessedImages((prev) => new Map(prev).set(imageUrl, dataUrl));
-          setProcessingImage(false);
-        };
-        reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error("Failed to remove background:", error);
-        setProcessingImage(false);
-        // Use original image on error
-        setProcessedImages((prev) => new Map(prev).set(imageUrl, imageUrl));
-      }
-    };
-
-    processCurrentImage();
-  }, [currentIndex, vehicles]);
-
   const handlePrevious = () => {
+    setDirection(-1);
     setCurrentIndex((prev) => (prev === 0 ? vehicles.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
+    setDirection(1);
     setCurrentIndex((prev) => (prev === vehicles.length - 1 ? 0 : prev + 1));
   };
 
   const handleDotClick = (index: number) => {
+    setDirection(index > currentIndex ? 1 : -1);
     setCurrentIndex(index);
   };
 
   const currentVehicle = vehicles[currentIndex];
   const currentImageUrl = currentVehicle?.images?.[0] || "/Homepage/Car.png";
-  const displayImageUrl =
-    processedImages.get(currentImageUrl) || currentImageUrl;
+
+  // Animation variants
+  const imageVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.96,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.5, ease: easeOut },
+    },
+    exit: (direction: number) => ({
+      x: direction > 0 ? -300 : 300,
+      opacity: 0,
+      scale: 0.96,
+      transition: { duration: 0.4, ease: easeIn },
+    }),
+  };
 
   if (loading) {
     return (
@@ -116,7 +101,7 @@ function ProductShowcase() {
   }
 
   return (
-    <section className="absolute bottom-8 lg:-bottom-30 left-1/2 -translate-x-1/2 w-full max-w-6xl px-4 lg:px-6 z-30">
+    <section className="absolute bottom-8 lg:-bottom-35 left-1/2 -translate-x-1/2 w-full max-w-6xl px-4 lg:px-6 z-30">
       {/* Badge - Hidden on mobile */}
       <div className="hidden lg:block absolute -top-6 right-8 lg:right-16 bg-white rounded-3xl px-8 py-5 shadow-2xl z-40 transform rotate-2">
         <div className="text-center">
@@ -131,39 +116,50 @@ function ProductShowcase() {
 
       {/* Main Image Container */}
       <div className="relative">
-        <div className="relative w-full h-[280px] sm:h-[350px] lg:h-[500px]">
-          {processingImage && !processedImages.has(currentImageUrl) ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center space-y-3">
-                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="text-slate-500 text-sm">
-                  {t("homepage.processingImage", "Processing image...")}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <Image
-              src={displayImageUrl}
-              alt={currentVehicle.title || "Electric Vehicle"}
-              fill
-              className="object-contain drop-shadow-2xl transition-opacity duration-300"
-              priority
-            />
-          )}
+        <div className="relative w-full h-[280px] sm:h-[350px] lg:h-[500px] flex items-center justify-center">
+          <AnimatePresence custom={direction} initial={false} mode="wait">
+            <motion.div
+              key={currentVehicle.id}
+              className="absolute inset-0"
+              custom={direction}
+              variants={imageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: "tween" }}
+              style={{ willChange: "transform, opacity" }}
+            >
+              <Image
+                src={currentImageUrl}
+                alt={currentVehicle.title || "Electric Vehicle"}
+                fill
+                className="object-contain drop-shadow-2xl"
+                priority
+              />
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Price Tag */}
-        <div className="absolute top-8 sm:top-1/4 left-4 sm:left-1/4 bg-white/90 backdrop-blur-sm text-slate-900 px-4 sm:px-6 py-2 sm:py-3 rounded-full shadow-xl border-2 border-blue-200">
+        <motion.div
+          key={currentVehicle.price}
+          className="absolute top-8 sm:top-1/4 left-4 sm:left-1/4 bg-white/90 backdrop-blur-sm text-slate-900 px-4 sm:px-6 py-2 sm:py-3 rounded-full shadow-xl border-2 border-blue-200"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+        >
           <p className="text-base sm:text-xl font-bold">
             ${currentVehicle.price.toLocaleString()}
           </p>
-        </div>
+        </motion.div>
 
         {/* Navigation Arrows */}
         <button
           onClick={handlePrevious}
           className="absolute left-2 sm:-left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-700 text-lg sm:text-xl hover:bg-white transition-all duration-300 z-30 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           disabled={vehicles.length <= 1}
+          aria-label="Previous vehicle"
         >
           ←
         </button>
@@ -171,6 +167,7 @@ function ProductShowcase() {
           onClick={handleNext}
           className="absolute right-2 sm:-right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-700 text-lg sm:text-xl hover:bg-white transition-all duration-300 z-30 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           disabled={vehicles.length <= 1}
+          aria-label="Next vehicle"
         >
           →
         </button>
@@ -179,14 +176,16 @@ function ProductShowcase() {
       {/* Navigation dots */}
       <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
         {vehicles.map((_, index) => (
-          <button
+          <motion.button
             key={index}
             onClick={() => handleDotClick(index)}
             className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
-              index === currentIndex
-                ? "bg-blue-600 scale-125"
-                : "bg-slate-400 hover:bg-slate-500"
+              index === currentIndex ? "bg-blue-600 scale-125" : "bg-slate-400"
             }`}
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1 + index * 0.07, duration: 0.3 }}
+            aria-label={`Go to vehicle ${index + 1}`}
           />
         ))}
       </div>

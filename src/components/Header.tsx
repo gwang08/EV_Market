@@ -131,16 +131,30 @@ function Header() {
                 <button
                   key={index}
                   onClick={() => handleNavigation(item.href, requireAuth)}
-                  className={`text-sm font-medium transition-all duration-300 cursor-pointer relative ${
-                    isActive
-                      ? "text-blue-600"
-                      : "text-slate-700 hover:text-blue-600"
-                  }`}
+                  className={`text-sm font-medium transition-all duration-300 cursor-pointer relative group
+                    ${
+                      isActive
+                        ? "text-blue-600"
+                        : "text-slate-700 hover:text-blue-600"
+                    }
+                  `}
                 >
                   {item.name}
-                  {isActive && (
-                    <div className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-blue-600"></div>
-                  )}
+                  {/* Animated underline */}
+                  <span
+                    className={`
+                      absolute -bottom-1 left-0 right-0 h-0.5 rounded-full
+                      ${isActive ? "bg-blue-600" : ""}
+                      overflow-hidden
+                    `}
+                  >
+                    <span
+                      className={`
+                        block h-full w-full bg-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left
+                        ${isActive ? "scale-x-100" : ""}
+                      `}
+                    ></span>
+                  </span>
                 </button>
               );
             })}

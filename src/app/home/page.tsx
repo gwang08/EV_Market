@@ -13,8 +13,10 @@ export default function HomePage() {
     <div>
       <main>
         <SharedBackground>
-          <Content />
-          <ProductShowcase />
+          <div className="relative min-h-screen">
+            <Content />
+            <ProductShowcase />
+          </div>
           <BrandCarousel />
           <TopEV />
           <TopBattery />

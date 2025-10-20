@@ -35,6 +35,7 @@ function BrandCarousel() {
     rivian: "/brands/rivian.png",
     lucid: "/brands/lucid.png",
     kia: "/brands/kia.png",
+    Byd: "/brands/byd.png",
   };
 
   useEffect(() => {
@@ -126,51 +127,47 @@ function BrandCarousel() {
   const duplicatedBrands = [...brands, ...brands];
 
   return (
-    <section className="relative py-16 sm:py-20 lg:py-24">
+    <section className="relative py-16 sm:py-20 lg:py-24 lg:mt-15">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Infinite Scroll Carousel */}
         <div className="relative overflow-hidden py-8">
           {/* Gradient overlays */}
           <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
 
-          {/* Scrolling container */}
+          {/* Scrolling container with infinite animation */}
           <motion.div
-            animate={{
-              x: [0, -50 * brands.length],
-            }}
-            transition={{
-              x: {
-                repeat: Infinity,
-                repeatType: "loop",
-                duration: 25,
-                ease: "linear",
-              },
-            }}
             className="flex gap-12 sm:gap-16 md:gap-20 lg:gap-24"
+            initial={{ x: 0 }}
+            animate={{ x: [`0%`, `-${100 / 2}%`] }} // scroll half, since duplicated
+            transition={{
+              repeat: Infinity,
+              repeatType: "loop",
+              duration: 30,
+              ease: "linear",
+            }}
           >
             {duplicatedBrands.map((brand, index) => (
               <motion.div
                 key={`${brand.name}-${index}`}
                 onClick={() => handleBrandClick(brand.name)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex-shrink-0 w-32 sm:w-40 md:w-48 lg:w-56 cursor-pointer"
+                className="flex-shrink-0 w-32 sm:w-40 md:w-48 lg:w-56 cursor-pointer group"
+                initial={{ opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.6,
+                  delay: index * 0.08,
+                  ease: "easeOut",
+                }}
               >
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="relative h-20 sm:h-24 md:h-28 lg:h-32"
-                >
+                <div className="relative h-20 sm:h-24 md:h-28 lg:h-32 flex items-center justify-center">
                   <Image
                     src={brand.logo}
                     alt={brand.name}
                     fill
-                    className="object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                    className="object-contain filter grayscale-0 transition-all duration-300 drop-shadow-xl"
                     priority={index < 10}
                   />
-                </motion.div>
+                </div>
               </motion.div>
             ))}
           </motion.div>
