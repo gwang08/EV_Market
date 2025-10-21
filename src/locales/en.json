@@ -298,7 +298,8 @@
         "yearRange": "Must be between 1990 and 2026",
         "mileageInteger": "Must be a non-negative integer",
         "batteryHealthRange": "Must be between 0 and 100",
-        "batteryCapacityPositive": "Must be a positive number"
+        "batteryCapacityPositive": "Must be a positive number",
+        "required": "Please fill in all required fields"
       },
       "placeholders": {
         "listingTitle": "e.g., 2020 Tesla Model 3 Long Range",

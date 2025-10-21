@@ -293,7 +293,8 @@
         "yearRange": "Phải từ 1990 đến 2026",
         "mileageInteger": "Phải là số nguyên không âm",
         "batteryHealthRange": "Phải từ 0 đến 100",
-        "batteryCapacityPositive": "Phải là số dương"
+        "batteryCapacityPositive": "Phải là số dương",
+        "required": "Vui lòng nhập đầy đủ thông tin bắt buộc"
       },
       "placeholders": {
         "listingTitle": "VD: Tesla Model 3 Long Range 2020",
