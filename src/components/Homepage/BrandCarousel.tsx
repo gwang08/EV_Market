@@ -35,7 +35,8 @@ function BrandCarousel() {
     rivian: "/brands/rivian.png",
     lucid: "/brands/lucid.png",
     kia: "/brands/kia.png",
-    Byd: "/brands/byd.png",
+    byd: "/brands/byd.png",
+    polestar: "/brands/polestar.png",
   };
 
   useEffect(() => {

@@ -298,7 +298,8 @@
         "yearRange": "Must be between 1990 and 2026",
         "mileageInteger": "Must be a non-negative integer",
         "batteryHealthRange": "Must be between 0 and 100",
-        "batteryCapacityPositive": "Must be a positive number"
+        "batteryCapacityPositive": "Must be a positive number",
+        "required": "Please fill in all required fields"
       },
       "placeholders": {
         "listingTitle": "e.g., 2020 Tesla Model 3 Long Range",
@@ -708,5 +709,32 @@
       "vehicle": "Vehicle",
       "battery": "Battery"
     }
+  },
+  "batteryDetail": {
+    "technicalSpecifications": "Technical Specifications",
+    "electricalSpecs": "Electrical Specs",
+    "physicalSpecs": "Physical Specs",
+    "performance": "Performance",
+    "warrantySafety": "Warranty & Safety",
+    "voltage": "Voltage",
+    "capacity": "Capacity",
+    "chemistry": "Chemistry",
+    "chargingTime": "Charging Time",
+    "weight": "Weight",
+    "installation": "Installation",
+    "degradation": "Degradation",
+    "health": "Health",
+    "soh": "SoH",
+    "temperatureRange": "Temperature Range",
+    "batteryHealth": "Battery Health",
+    "year": "Year",
+    "status": "Status",
+    "warrantyPeriod": "Warranty Period",
+    "verified": "Verified",
+    "yes": "Yes",
+    "no": "No",
+    "brand": "Brand",
+    "created": "Created",
+    "na": "N/A"
   }
 }

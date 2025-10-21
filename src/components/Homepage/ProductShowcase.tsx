@@ -174,7 +174,7 @@ function ProductShowcase() {
       </div>
 
       {/* Navigation dots */}
-      <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+      {/* <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
         {vehicles.map((_, index) => (
           <motion.button
             key={index}
@@ -188,7 +188,7 @@ function ProductShowcase() {
             aria-label={`Go to vehicle ${index + 1}`}
           />
         ))}
-      </div>
+      </div> */}
     </section>
   );
 }
