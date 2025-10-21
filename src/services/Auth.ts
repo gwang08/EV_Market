@@ -561,9 +561,18 @@ export const logoutUserLocal = () => {
 // Google OAuth login function
 export const loginWithGoogle = (): void => {
   if (typeof window !== 'undefined') {
-    const googleAuthUrl = `${API_BASE_URL}/auth/google`
-    console.log('🔄 Google Auth - Redirecting to:', googleAuthUrl)
-    window.location.href = googleAuthUrl
+    try {
+      // Construct the URL safely and append query parameter
+      const url = new URL(`${API_BASE_URL}/auth/google`)
+      url.searchParams.set('client_type', 'web')
+      const googleAuthUrl = url.toString()
+      window.location.href = googleAuthUrl
+    } catch (error) {
+      // Fallback in case URL construction fails
+      const fallbackUrl = `${API_BASE_URL}/auth/google?client_type=web`
+      console.error('🔄 Google Auth - URL build failed, using fallback:', error)
+      window.location.href = fallbackUrl
+    }
   }
 }
 
