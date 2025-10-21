@@ -1,69 +1,104 @@
-"use client"
-import React from 'react'
-import colors from '../../Utils/Color'
-import { useI18nContext } from '../../providers/I18nProvider'
-
-import { Vehicle } from '../../services'
+"use client";
+import React from "react";
+import { useI18nContext } from "../../providers/I18nProvider";
+import { Vehicle } from "../../services";
+import { motion } from "framer-motion";
 
 interface CarDescriptionProps {
-  vehicle: Vehicle
+  vehicle: Vehicle;
 }
 
 function CarDescription({ vehicle }: CarDescriptionProps) {
-  const { t } = useI18nContext()
+  const { t } = useI18nContext();
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-      <div className="p-6">
-        <h3 className="text-xl font-bold mb-6" style={{color: colors.Text}}>
-          Description
+    <motion.div
+      className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 rounded-2xl shadow-xl border border-blue-100"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <div className="p-8">
+        <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+          {t("vehicleDetail.description")}
         </h3>
 
         {/* Main Description */}
-        <div className="mb-8">
-          <p className="text-base leading-relaxed" style={{color: colors.SubText}}>
-            {vehicle.description || 'No description available.'}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <p className="text-base leading-relaxed text-slate-700">
+            {vehicle.description || t("vehicleDetail.noDescription")}
           </p>
-        </div>
+        </motion.div>
 
         {/* Vehicle Details */}
         <div className="mb-8">
-          <h4 className="font-semibold mb-4" style={{color: colors.Text}}>
-            Vehicle Details
+          <h4 className="font-semibold mb-4 text-blue-900">
+            {t("vehicleDetail.vehicleDetails")}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Brand</span>
-              <span className="text-sm" style={{color: colors.SubText}}>{vehicle.brand}</span>
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.brand")}
+              </span>
+              <span className="text-sm text-slate-900">{vehicle.brand}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Model</span>
-              <span className="text-sm" style={{color: colors.SubText}}>{vehicle.model}</span>
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.model")}
+              </span>
+              <span className="text-sm text-slate-900">{vehicle.model}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Year</span>
-              <span className="text-sm" style={{color: colors.SubText}}>{vehicle.year}</span>
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.year")}
+              </span>
+              <span className="text-sm text-slate-900">{vehicle.year}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Mileage</span>
-              <span className="text-sm" style={{color: colors.SubText}}>{vehicle.mileage.toLocaleString()} miles</span>
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.mileage")}
+              </span>
+              <span className="text-sm text-slate-900">
+                {vehicle.mileage.toLocaleString()} km
+              </span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Status</span>
-              <span className={`text-sm px-2 py-1 rounded-full ${
-                vehicle.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 
-                vehicle.status === 'SOLD' ? 'bg-red-100 text-red-800' : 
-                'bg-gray-100 text-gray-800'
-              }`}>
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.status")}
+              </span>
+              <span
+                className={`text-xs px-2 py-1 rounded-full font-semibold
+                ${
+                  vehicle.status === "AVAILABLE"
+                    ? "bg-green-100 text-green-700"
+                    : vehicle.status === "SOLD"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
                 {vehicle.status}
               </span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-sm font-medium" style={{color: colors.Text}}>Verified</span>
-              <span className={`text-sm px-2 py-1 rounded-full ${
-                vehicle.isVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
-                {vehicle.isVerified ? 'Yes' : 'No'}
+            <div className="flex justify-between items-center py-2 border-b border-blue-50">
+              <span className="text-sm font-medium text-slate-500">
+                {t("vehicleDetail.verified")}
+              </span>
+              <span
+                className={`text-xs px-2 py-1 rounded-full font-semibold
+                ${
+                  vehicle.isVerified
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
+                {vehicle.isVerified
+                  ? t("vehicleDetail.verified")
+                  : t("vehicleDetail.notVerified")}
               </span>
             </div>
           </div>
@@ -71,32 +106,43 @@ function CarDescription({ vehicle }: CarDescriptionProps) {
 
         {/* Listing Information */}
         <div>
-          <h4 className="font-semibold mb-4" style={{color: colors.Text}}>
-            Listing Information
+          <h4 className="font-semibold mb-4 text-blue-900">
+            {t("vehicleDetail.listingInformation")}
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="font-medium mb-2" style={{color: colors.Text}}>
-                Listed Date
+            <motion.div
+              className="p-4 bg-white/80 rounded-lg shadow-sm"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+            >
+              <div className="font-medium mb-1 text-slate-500">
+                {t("vehicleDetail.listedOn")}
               </div>
-              <div className="text-sm" style={{color: colors.SubText}}>
+              <div className="text-sm text-slate-900">
                 {new Date(vehicle.createdAt).toLocaleDateString()}
               </div>
-            </div>
-            
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="font-medium mb-2" style={{color: colors.Text}}>
-                Last Updated
+            </motion.div>
+            <motion.div
+              className="p-4 bg-white/80 rounded-lg shadow-sm"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.22 }}
+            >
+              <div className="font-medium mb-1 text-slate-500">
+                {t("vehicleDetail.lastUpdated")}
               </div>
-              <div className="text-sm" style={{color: colors.SubText}}>
+              <div className="text-sm text-slate-900">
                 {new Date(vehicle.updatedAt).toLocaleDateString()}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    </motion.div>
+  );
 }
 
-export default CarDescription
+export default CarDescription;
