@@ -697,5 +697,32 @@
     "profileNotFound": "Không tìm thấy hồ sơ người bán",
     "goBack": "Quay lại",
     "greatExperience": "Trải nghiệm tuyệt vời với người bán này!"
+  },
+  "batteryDetail": {
+    "technicalSpecifications": "Thông số kỹ thuật",
+    "electricalSpecs": "Thông số điện",
+    "physicalSpecs": "Thông số vật lý",
+    "performance": "Hiệu suất",
+    "warrantySafety": "Bảo hành & An toàn",
+    "voltage": "Điện áp",
+    "capacity": "Dung lượng",
+    "chemistry": "Hóa học",
+    "chargingTime": "Thời gian sạc",
+    "weight": "Trọng lượng",
+    "installation": "Lắp đặt",
+    "degradation": "Suy giảm",
+    "health": "Tình trạng",
+    "soh": "SoH",
+    "temperatureRange": "Dải nhiệt độ",
+    "batteryHealth": "Tình trạng pin",
+    "year": "Năm sản xuất",
+    "status": "Trạng thái",
+    "warrantyPeriod": "Thời hạn bảo hành",
+    "verified": "Đã xác minh",
+    "yes": "Có",
+    "no": "Không",
+    "brand": "Thương hiệu",
+    "created": "Ngày đăng",
+    "na": "Không có thông tin"
   }
 }

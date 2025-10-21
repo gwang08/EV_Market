@@ -1,97 +1,151 @@
-"use client"
-import React from 'react'
-import { Calendar, Gauge, Battery, Zap, MapPin, Shield } from 'lucide-react'
-import colors from '../../Utils/Color'
-import { useI18nContext } from '../../providers/I18nProvider'
-
-import { Vehicle } from '../../services'
+"use client";
+import React from "react";
+import { Gauge, Battery, MapPin, Shield } from "lucide-react";
+import colors from "../../Utils/Color";
+import { useI18nContext } from "../../providers/I18nProvider";
+import { Vehicle } from "../../services";
+import { motion } from "framer-motion";
 
 interface CarSpecificationsProps {
-  vehicle: Vehicle
+  vehicle: Vehicle;
 }
 
 function CarSpecifications({ vehicle }: CarSpecificationsProps) {
-  const { t } = useI18nContext()
+  const { t } = useI18nContext();
 
-  const specs = vehicle.specifications
+  const specs = vehicle.specifications;
 
   const specSections = [
     {
-      title: "Performance",
+      title: t("vehicleDetail.performance"),
       icon: <Gauge size={20} />,
       items: [
-        { label: "Top Speed", value: specs?.performance?.topSpeed || 'N/A' },
-        { label: "0-60 mph", value: specs?.performance?.acceleration || 'N/A' },
-        { label: "Motor Type", value: specs?.performance?.motorType || 'N/A' },
-        { label: "Horsepower", value: specs?.performance?.horsepower || 'N/A' }
-      ]
+        {
+          label: t("vehicleDetail.topSpeed"),
+          value: specs?.performance?.topSpeed || "N/A",
+        },
+        {
+          label: t("vehicleDetail.acceleration"),
+          value: specs?.performance?.acceleration || "N/A",
+        },
+        {
+          label: t("vehicleDetail.motorType"),
+          value: specs?.performance?.motorType || "N/A",
+        },
+        {
+          label: t("vehicleDetail.horsepower"),
+          value: specs?.performance?.horsepower || "N/A",
+        },
+      ],
     },
     {
-      title: "Battery & Charging",
+      title: t("vehicleDetail.batteryCharging"),
       icon: <Battery size={20} />,
       items: [
-        { label: "Battery Capacity", value: specs?.batteryAndCharging?.batteryCapacity || 'N/A' },
-        { label: "Range", value: specs?.batteryAndCharging?.range || 'N/A' },
-        { label: "Charging Speed", value: specs?.batteryAndCharging?.chargingSpeed || 'N/A' },
-        { label: "Charge Time", value: specs?.batteryAndCharging?.chargeTime || 'N/A' }
-      ]
+        {
+          label: t("vehicleDetail.batteryCapacity"),
+          value: specs?.batteryAndCharging?.batteryCapacity || "N/A",
+        },
+        {
+          label: t("vehicleDetail.range"),
+          value: specs?.batteryAndCharging?.range || "N/A",
+        },
+        {
+          label: t("vehicleDetail.chargingSpeed"),
+          value: specs?.batteryAndCharging?.chargingSpeed || "N/A",
+        },
+        {
+          label: t("vehicleDetail.chargeTime"),
+          value: specs?.batteryAndCharging?.chargeTime || "N/A",
+        },
+      ],
     },
     {
-      title: "Dimensions",
+      title: t("vehicleDetail.dimensions"),
       icon: <MapPin size={20} />,
       items: [
-        { label: "Length", value: specs?.dimensions?.length || 'N/A' },
-        { label: "Width", value: specs?.dimensions?.width || 'N/A' },
-        { label: "Height", value: specs?.dimensions?.height || 'N/A' },
-        { label: "Curb Weight", value: specs?.dimensions?.curbWeight || 'N/A' }
-      ]
+        {
+          label: t("vehicleDetail.length"),
+          value: specs?.dimensions?.length || "N/A",
+        },
+        {
+          label: t("vehicleDetail.width"),
+          value: specs?.dimensions?.width || "N/A",
+        },
+        {
+          label: t("vehicleDetail.height"),
+          value: specs?.dimensions?.height || "N/A",
+        },
+        {
+          label: t("vehicleDetail.curbWeight"),
+          value: specs?.dimensions?.curbWeight || "N/A",
+        },
+      ],
     },
     {
-      title: "Warranty",
+      title: t("vehicleDetail.warranty"),
       icon: <Shield size={20} />,
       items: [
-        { label: "Basic Warranty", value: specs?.warranty?.basic || 'N/A' },
-        { label: "Battery Warranty", value: specs?.warranty?.battery || 'N/A' },
-        { label: "Drivetrain Warranty", value: specs?.warranty?.drivetrain || 'N/A' }
-      ]
-    }
-  ]
+        {
+          label: t("vehicleDetail.basicWarranty"),
+          value: specs?.warranty?.basic || "N/A",
+        },
+        {
+          label: t("vehicleDetail.batteryWarranty"),
+          value: specs?.warranty?.battery || "N/A",
+        },
+        {
+          label: t("vehicleDetail.drivetrainWarranty"),
+          value: specs?.warranty?.drivetrain || "N/A",
+        },
+      ],
+    },
+  ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-      <div className="p-6">
-        <h3 className="text-xl font-bold mb-6" style={{color: colors.Text}}>
-          Specifications
+    <motion.div
+      className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 rounded-2xl shadow-xl border border-blue-100"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <div className="p-8">
+        <h3 className="text-2xl font-bold mb-8 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+          {t("vehicleDetail.specifications")}
         </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {specSections.map((section, index) => (
-            <div key={index} className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
+            <motion.div
+              key={index}
+              className="space-y-5 bg-white/80 rounded-xl p-6 shadow group hover:shadow-lg transition"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: index * 0.08 }}
+            >
+              <div className="flex items-center gap-2 mb-2">
                 <div className="text-blue-600">{section.icon}</div>
-                <h4 className="font-semibold" style={{color: colors.Text}}>
-                  {section.title}
-                </h4>
+                <h4 className="font-semibold text-blue-900">{section.title}</h4>
               </div>
-              
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {section.items.map((item, itemIndex) => (
-                  <div key={itemIndex} className="flex justify-between items-center">
-                    <span className="text-sm" style={{color: colors.SubText}}>
-                      {item.label}
-                    </span>
-                    <span className="font-medium" style={{color: colors.Text}}>
+                  <div
+                    key={itemIndex}
+                    className="flex justify-between items-center border-b border-blue-50 pb-1 last:border-0"
+                  >
+                    <span className="text-sm text-slate-500">{item.label}</span>
+                    <span className="font-medium text-slate-900 text-sm">
                       {item.value}
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
-    </div>
-  )
+    </motion.div>
+  );
 }
 
-export default CarSpecifications
+export default CarSpecifications;
