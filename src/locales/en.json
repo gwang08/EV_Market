@@ -808,6 +808,16 @@
     "startingPrice": "Starting Price",
     "bidIncrement": "Bid Increment",
     "totalBids": "Total Bids",
-    "specifications": "Specifications"
+    "specifications": "Specifications",
+    "errors": {
+      "depositRequiredError": "You must pay a deposit before placing a bid. Please pay the deposit first.",
+      "insufficientBalance": "Insufficient wallet balance. Please top up your wallet.",
+      "ownAuctionError": "You cannot bid on your own auction.",
+      "alreadyHighestBidder": "You are already the highest bidder.",
+      "auctionNotStarted": "This auction has not started yet.",
+      "auctionAlreadyEnded": "This auction has already ended.",
+      "bidTooLow": "Your bid must be at least {amount}.",
+      "goToWallet": "Go to Wallet"
+    }
   }
 }
