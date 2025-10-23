@@ -2,16 +2,16 @@
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
 import ProfileSettings from '@/components/Profile/ProfileSettings'
-import RoleAuthWrapper from '@/components/common/RoleAuthWrapper'
+import MemberOnlyWrapper from '@/components/common/MemberOnlyWrapper'
 import React from 'react'
 
 function page() {
   return (
-    <RoleAuthWrapper allowedRoles={['MEMBER', 'ADMIN']}>
+    <MemberOnlyWrapper>
       <Header />
       <ProfileSettings />
       <Footer />
-    </RoleAuthWrapper>
+    </MemberOnlyWrapper>
   )
 }
 

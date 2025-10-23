@@ -1,48 +1,52 @@
-"use client"
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { getVehicleById, type Vehicle, type VehicleResponse } from '../../services'
-import CarDetailHero from './CarDetailHero'
-import CarDetailTabs from './CarDetailTabs'
-import SellerInfo from './SellerInfo'
-import colors from '../../Utils/Color'
-import { useRouter } from 'next/navigation'
+"use client";
+import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import {
+  getVehicleById,
+  type Vehicle,
+  type VehicleResponse,
+} from "../../services";
+import CarDetailHero from "./CarDetailHero";
+import CarDetailTabs from "./CarDetailTabs";
+import SellerInfo from "./SellerInfo";
+import colors from "../../Utils/Color";
+import { useRouter } from "next/navigation";
 
 function CarDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const params = useParams();
+  const router = useRouter();
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVehicle = async () => {
       try {
-        const vehicleId = params.id as string
-        const response = await getVehicleById(vehicleId)
-        
+        const vehicleId = params.id as string;
+        const response = await getVehicleById(vehicleId);
+
         if (response.success && response.data) {
           // Handle both possible response structures
-          const vehicleData = (response.data as any).vehicle || response.data
-          setVehicle(vehicleData as Vehicle)
+          const vehicleData = (response.data as any).vehicle || response.data;
+          setVehicle(vehicleData as Vehicle);
         } else {
-          setError(response.message || 'Failed to fetch vehicle details')
+          setError(response.message || "Failed to fetch vehicle details");
         }
       } catch (err) {
-        setError('Failed to fetch vehicle details')
+        setError("Failed to fetch vehicle details");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (params.id) {
-      fetchVehicle()
+      fetchVehicle();
     }
-  }, [params.id])
+  }, [params.id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white mt-25">
         {/* Skeleton UI for Vehicle Detail */}
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Hero Section Skeleton */}
@@ -80,14 +84,14 @@ function CarDetailPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !vehicle) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg">{error || 'Vehicle not found'}</p>
+          <p className="text-red-600 text-lg">{error || "Vehicle not found"}</p>
           <button
             onClick={() => window.history.back()}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -96,14 +100,14 @@ function CarDetailPage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen mt-25">
       {/* Hero Section */}
       <CarDetailHero vehicle={vehicle} />
-      
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -111,7 +115,7 @@ function CarDetailPage() {
           <div className="lg:col-span-2 space-y-8">
             <CarDetailTabs vehicle={vehicle} />
           </div>
-          
+
           {/* Right Column - Seller Info */}
           <div className="lg:col-span-1">
             <SellerInfo vehicle={vehicle} />
@@ -119,7 +123,7 @@ function CarDetailPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default CarDetailPage
+export default CarDetailPage;
