@@ -52,6 +52,7 @@ function Header() {
   const navigationItems = [
     { name: t("navigation.home"), href: "/" },
     { name: t("navigation.browse"), href: "/browse" },
+    { name: t("navigation.auctions"), href: "/auctions" },
     { name: t("navigation.sell"), href: "/sell" },
   ];
 

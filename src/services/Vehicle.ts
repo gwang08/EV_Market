@@ -8,7 +8,7 @@ export interface Vehicle {
   description: string
   price: number
   images: string[]
-  status: 'AVAILABLE' | 'SOLD' | 'DELISTED'
+  status: 'AVAILABLE' | 'SOLD' | 'DELISTED' | 'AUCTION_PENDING_APPROVAL' | 'AUCTION_APPROVED' | 'AUCTION_REJECTED' | 'AUCTION_ACTIVE' | 'AUCTION_ENDED'
   brand: string
   model: string
   year: number
@@ -41,6 +41,8 @@ export interface Vehicle {
     }
   }
   isVerified: boolean
+  isAuction?: boolean
+  auctionRejectionReason?: string | null
   createdAt: string
   updatedAt: string
   sellerId: string

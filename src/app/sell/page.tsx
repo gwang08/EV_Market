@@ -9,7 +9,7 @@ import RecentActivity from "@/components/Sellerpage/RecentActivity";
 import TipsForSellers from "@/components/Sellerpage/TipsForSellers";
 import MyListings from "@/components/Sellerpage/MyListings";
 import AddListing from "@/components/Sellerpage/AddListing";
-import AuthWrapper from "../../components/common/AuthWrapper";
+import MemberOnlyWrapper from "../../components/common/MemberOnlyWrapper";
 
 export default function SellPage() {
   const [activeTab, setActiveTab] = useState("listings");
@@ -43,7 +43,7 @@ export default function SellPage() {
   };
 
   return (
-    <AuthWrapper>
+    <MemberOnlyWrapper>
       <div className="min-h-screen bg-white mt-25">
         <Header />
         <SellerTitle />
@@ -54,6 +54,6 @@ export default function SellPage() {
 
         <Footer />
       </div>
-    </AuthWrapper>
+    </MemberOnlyWrapper>
   );
 }

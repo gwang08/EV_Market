@@ -103,32 +103,22 @@ const handleExpiredToken = () => {
 
 // Helper function to handle API responses
 const handleApiResponse = async (response: Response) => {
-  console.log('🔍 Handle API Response - Processing response...', {
-    status: response.status,
-    statusText: response.statusText,
-    url: response.url
-  })
+
   
   const contentType = response.headers.get('content-type')
   
   let data
   if (contentType && contentType.includes('application/json')) {
     data = await response.json()
-    console.log('🔍 Handle API Response - JSON data:', data)
   } else {
     data = { message: await response.text() }
-    console.log('🔍 Handle API Response - Text data:', data)
   }
 
   if (!response.ok) {
-    console.error('❌ Handle API Response - Response not OK:', {
-      status: response.status,
-      data: data
-    })
+ 
     
     // Handle 401 Unauthorized specifically
     if (response.status === 401) {
-      console.warn('⚠️ Handle API Response - Received 401 Unauthorized, handling expired token')
       handleExpiredToken()
       throw new Error('Authentication failed. Please login again.')
     }
@@ -136,28 +126,21 @@ const handleApiResponse = async (response: Response) => {
     throw new Error(data.message || data.error || 'Something went wrong')
   }
 
-  console.log('✅ Handle API Response - Success:', data)
   return data
 }
 
 // Get user profile
 export const getUserProfile = async (): Promise<UserProfileResponse> => {
   try {
-    console.log('👤 Get User Profile - Starting...')
     
     const token = getAuthToken()
     
-    console.log('👤 Get User Profile - Token info:', {
-      hasToken: !!token,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : null
-    })
+
     
     if (!token) {
-      console.error('❌ Get User Profile - No authentication token found')
       throw new Error('No authentication token found')
     }
     
-    console.log('👤 Get User Profile - Making API call to:', `${API_BASE_URL}/users/me`)
     
     const response = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'GET',
@@ -168,15 +151,10 @@ export const getUserProfile = async (): Promise<UserProfileResponse> => {
       credentials: 'include' // Include cookies
     })
 
-    console.log('👤 Get User Profile - API response status:', response.status)
     
     const data = await handleApiResponse(response)
     
-    console.log('👤 Get User Profile - API response data:', {
-      success: true,
-      message: data.message,
-      hasUserData: !!data.data?.user || !!data.user
-    })
+  
     
     return {
       success: true,

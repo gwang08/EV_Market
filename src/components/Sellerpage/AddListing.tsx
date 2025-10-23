@@ -12,6 +12,7 @@ import { useToast } from "../../hooks/useToast";
 import { ToastContainer } from "../common/Toast";
 import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
+import { requestAuction } from "../../services";
 import { useDataContext } from "../../contexts/DataContext";
 import { FiBatteryCharging, FiTruck } from "react-icons/fi";
 
@@ -283,14 +284,15 @@ function AddListing() {
 
     setSubmitting(true);
     try {
-      // API call
+      // API call - Create listing with auction if enabled
       let result;
+      
       if (listingType === "vehicle") {
-        const vehiclePayload = {
+        const vehiclePayload: any = {
           title: form.title,
           description: form.description,
           price: Number(form.price),
-          brand: form.make, // API expects 'brand', form uses 'make'
+          brand: form.make,
           model: form.model,
           year: Number(form.year),
           mileage: Number(form.mileage),
@@ -318,13 +320,14 @@ function AddListing() {
             },
           },
         };
+
         result = await createVehicle(vehiclePayload);
       } else {
-        const batteryPayload = {
+        const batteryPayload: any = {
           title: form.title,
           description: form.description,
           price: Number(form.price),
-          brand: form.make, // API expects 'brand', form uses 'make'
+          brand: form.make,
           capacity: Number(form.batteryCapacity),
           year: Number(form.year),
           health: Number(form.batteryHealth),
@@ -340,6 +343,7 @@ function AddListing() {
             temperatureRange: form.spec_temperatureRange || undefined,
           },
         };
+
         result = await createBattery(batteryPayload);
       }
 
@@ -352,6 +356,7 @@ function AddListing() {
         return;
       }
 
+      // Success message
       success(t("seller.addListing.validation.listingCreatedSuccess"));
 
       // Refresh cache to show new listing immediately
@@ -1121,6 +1126,7 @@ function AddListing() {
                 </p>
               )}
             </div>
+
           </div>
         );
     }
@@ -1133,13 +1139,13 @@ function AddListing() {
       requiredFields =
         listingType === "vehicle"
           ? ["title", "price", "make", "model", "year", "mileage"]
-          : ["title", "price", "make", "year", "batteryCapacity"];
+          : ["title", "price", "make", "year"]; // Battery step 1: only basic info
     }
     if (currentStep === 2) {
       requiredFields =
         listingType === "vehicle"
           ? ["location", "bodyType", "exteriorColor", "interiorColor"]
-          : ["batteryCapacity", "batteryHealth"];
+          : ["batteryCapacity", "batteryHealth"]; // Battery step 2: capacity and health
     }
     if (currentStep === 3) {
       requiredFields =
@@ -1192,7 +1198,38 @@ function AddListing() {
         </div>
         <div className="flex gap-4">
           <button
-            onClick={() => setListingType("vehicle")}
+            onClick={() => {
+              setListingType("vehicle");
+              // Reset form when switching type
+              setForm({
+                title: "",
+                make: "",
+                model: "",
+                year: "",
+                price: "",
+                mileage: "",
+                location: "",
+                bodyType: "",
+                exteriorColor: "",
+                interiorColor: "",
+                batteryHealth: "",
+                range: "",
+                batteryCapacity: "",
+                description: "",
+                spec_weight: "",
+                spec_voltage: "",
+                spec_chemistry: "",
+                spec_degradation: "",
+                spec_chargingTime: "",
+                spec_installation: "",
+                spec_warrantyPeriod: "",
+                spec_temperatureRange: "",
+              });
+              setUploadedImages([]);
+              setImagePreviews([]);
+              setCurrentStep(1);
+              setErrors([]);
+            }}
             className={`flex items-center gap-3 px-7 py-4 rounded-xl border-2 transition-all duration-300 font-semibold text-lg
               ${
                 listingType === "vehicle"
@@ -1204,7 +1241,38 @@ function AddListing() {
             {t("seller.listings.vehicle")}
           </button>
           <button
-            onClick={() => setListingType("battery")}
+            onClick={() => {
+              setListingType("battery");
+              // Reset form when switching type
+              setForm({
+                title: "",
+                make: "",
+                model: "",
+                year: "",
+                price: "",
+                mileage: "",
+                location: "",
+                bodyType: "",
+                exteriorColor: "",
+                interiorColor: "",
+                batteryHealth: "",
+                range: "",
+                batteryCapacity: "",
+                description: "",
+                spec_weight: "",
+                spec_voltage: "",
+                spec_chemistry: "",
+                spec_degradation: "",
+                spec_chargingTime: "",
+                spec_installation: "",
+                spec_warrantyPeriod: "",
+                spec_temperatureRange: "",
+              });
+              setUploadedImages([]);
+              setImagePreviews([]);
+              setCurrentStep(1);
+              setErrors([]);
+            }}
             className={`flex items-center gap-3 px-7 py-4 rounded-xl border-2 transition-all duration-300 font-semibold text-lg
               ${
                 listingType === "battery"

@@ -2,16 +2,16 @@
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
 import ProfileSettings from '@/components/Profile/ProfileSettings'
-import AuthWrapper from '../../components/common/AuthWrapper'
+import MemberOnlyWrapper from '@/components/common/MemberOnlyWrapper'
 import React from 'react'
 
 function page() {
   return (
-    <AuthWrapper>
+    <MemberOnlyWrapper>
       <Header />
       <ProfileSettings />
       <Footer />
-    </AuthWrapper>
+    </MemberOnlyWrapper>
   )
 }
 

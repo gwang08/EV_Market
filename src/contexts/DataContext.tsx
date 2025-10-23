@@ -28,11 +28,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const fetchVehicles = useCallback(async (force = false) => {
     // If already have data and not forcing refresh, skip
     if (vehicles !== null && !force) {
-      console.log('✅ Using cached vehicles data')
       return
     }
     
-    console.log('🔄 Fetching vehicles from API...')
     setIsLoadingVehicles(true)
     setError(null)
     
@@ -44,14 +42,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           (vehicle: Vehicle) => vehicle.status !== 'SOLD'
         )
         setVehicles(availableVehicles)
-        console.log(`✅ Loaded ${availableVehicles.length} available vehicles (filtered ${response.data.vehicles.length - availableVehicles.length} sold)`)
       } else {
         setError(response.message || 'Failed to fetch vehicles')
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch vehicles'
       setError(errorMsg)
-      console.error('❌ Error fetching vehicles:', err)
     } finally {
       setIsLoadingVehicles(false)
     }
@@ -61,11 +57,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const fetchBatteries = useCallback(async (force = false) => {
     // If already have data and not forcing refresh, skip
     if (batteries !== null && !force) {
-      console.log('✅ Using cached batteries data')
       return
     }
     
-    console.log('🔄 Fetching batteries from API...')
     setIsLoadingBatteries(true)
     setError(null)
     
@@ -77,14 +71,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           (battery: Battery) => battery.status !== 'SOLD'
         )
         setBatteries(availableBatteries)
-        console.log(`✅ Loaded ${availableBatteries.length} available batteries (filtered ${response.data.batteries.length - availableBatteries.length} sold)`)
       } else {
         setError(response.message || 'Failed to fetch batteries')
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch batteries'
       setError(errorMsg)
-      console.error('❌ Error fetching batteries:', err)
     } finally {
       setIsLoadingBatteries(false)
     }
@@ -92,19 +84,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Refresh vehicles (force fetch)
   const refreshVehicles = useCallback(async () => {
-    console.log('🔄 Force refreshing vehicles...')
     await fetchVehicles(true)
   }, [fetchVehicles])
 
   // Refresh batteries (force fetch)
   const refreshBatteries = useCallback(async () => {
-    console.log('🔄 Force refreshing batteries...')
     await fetchBatteries(true)
   }, [fetchBatteries])
 
   // Clear all cache
   const clearCache = useCallback(() => {
-    console.log('🗑️ Clearing all cache...')
     setVehicles(null)
     setBatteries(null)
     setError(null)

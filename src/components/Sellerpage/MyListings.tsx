@@ -16,6 +16,7 @@ import {
   type Battery,
   // getBatteries
 } from "../../services/Battery";
+import { requestAuction, type RequestAuctionData } from "../../services/Auction";
 import { useToast } from "../../hooks/useToast";
 import { ToastContainer } from "../common/Toast";
 import {
@@ -54,6 +55,19 @@ function MyListings() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+
+  // Auction modal state
+  const [isAuctionModalOpen, setIsAuctionModalOpen] = useState(false);
+  const [auctionType, setAuctionType] = useState<ListingType>("vehicle");
+  const [auctionId, setAuctionId] = useState<string | null>(null);
+  const [auctionData, setAuctionData] = useState<RequestAuctionData>({
+    startingPrice: 0,
+    bidIncrement: 50000,
+    depositAmount: 0,
+    auctionStartsAt: "",
+    auctionEndsAt: "",
+  });
+  const [requestingAuction, setRequestingAuction] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -234,37 +248,45 @@ function MyListings() {
 
   const listings = useMemo(() => {
     if (tab === "vehicle")
-      return vehicles.map((v) => ({
-        id: v.id,
-        type: "vehicle" as const,
-        title: v.title,
-        price: `$${Number(v.price).toLocaleString()}`,
-        status: v.status === "SOLD" ? "sold" : "active",
-        image: v.images?.[0] || "/Homepage/TopCar.png",
+      return vehicles
+        .filter((v) => v.status !== "DELISTED") // Ẩn các sản phẩm DELISTED
+        .map((v) => ({
+          id: v.id,
+          type: "vehicle" as const,
+          title: v.title,
+          price: `$${Number(v.price).toLocaleString()}`,
+          status: v.status === "SOLD" ? "sold" : "active",
+          image: v.images?.[0] || "/Homepage/TopCar.png",
+          isAuction: v.isAuction || false,
+          auctionStatus: v.status,
+          specs: {
+            mileage: `${v.mileage?.toLocaleString()} km`,
+            battery: v.specifications?.batteryAndCharging?.range
+              ? `${v.specifications.batteryAndCharging.range} km range`
+              : "",
+            year: v.year ? `${v.year}` : "",
+            brand: v.brand || "",
+            model: v.model || "",
+          },
+        }));
+    return batteries
+      .filter((b) => b.status !== "DELISTED") // Ẩn các sản phẩm DELISTED
+      .map((b) => ({
+        id: b.id,
+        type: "battery" as const,
+        title: b.title,
+        price: `$${Number(b.price).toLocaleString()}`,
+        status: b.status === "SOLD" ? "sold" : "active",
+        image: b.images?.[0] || "/Homepage/Car.png",
+        isAuction: b.isAuction || false,
+        auctionStatus: b.status,
         specs: {
-          mileage: `${v.mileage?.toLocaleString()} km`,
-          battery: v.specifications?.batteryAndCharging?.range
-            ? `${v.specifications.batteryAndCharging.range} km range`
-            : "",
-          year: v.year ? `${v.year}` : "",
-          brand: v.brand || "",
-          model: v.model || "",
+          capacity: b.capacity ? `${b.capacity} kWh` : "",
+          health: `${b.health}% health`,
+          year: b.year ? `${b.year}` : "",
+          brand: b.brand || "",
         },
       }));
-    return batteries.map((b) => ({
-      id: b.id,
-      type: "battery" as const,
-      title: b.title,
-      price: `$${Number(b.price).toLocaleString()}`,
-      status: b.status === "SOLD" ? "sold" : "active",
-      image: b.images?.[0] || "/Homepage/Car.png",
-      specs: {
-        capacity: b.capacity ? `${b.capacity} kWh` : "",
-        health: `${b.health}% health`,
-        year: b.year ? `${b.year}` : "",
-        brand: b.brand || "",
-      },
-    }));
   }, [tab, vehicles, batteries]);
 
   const filteredListings = listings.filter((l) =>
@@ -347,6 +369,91 @@ function MyListings() {
       showError(
         e instanceof Error ? e.message : t("toast.deleteFailed", "Xóa thất bại")
       );
+    }
+  };
+
+  const openAuctionModal = (item: { id: string; type: ListingType }) => {
+    setAuctionType(item.type);
+    setAuctionId(item.id);
+    
+    // Get current listing price as starting price
+    const listing = item.type === "vehicle" 
+      ? vehicles.find(v => v.id === item.id)
+      : batteries.find(b => b.id === item.id);
+    
+    setAuctionData({
+      startingPrice: listing?.price || 0,
+      bidIncrement: 50000,
+      depositAmount: 100000,
+      auctionStartsAt: "",
+      auctionEndsAt: "",
+    });
+    
+    setIsAuctionModalOpen(true);
+  };
+
+  const handleRequestAuction = async () => {
+    if (!auctionId) return;
+
+    // Validation
+    if (!auctionData.startingPrice || auctionData.startingPrice <= 0) {
+      showError(t("seller.auction.startingPriceRequired", "Vui lòng nhập giá khởi điểm"));
+      return;
+    }
+    if (!auctionData.bidIncrement || auctionData.bidIncrement <= 0) {
+      showError(t("seller.auction.bidIncrementRequired", "Vui lòng nhập bước giá"));
+      return;
+    }
+    if (!auctionData.auctionStartsAt) {
+      showError(t("seller.auction.startTimeRequired", "Vui lòng chọn thời gian bắt đầu"));
+      return;
+    }
+    if (!auctionData.auctionEndsAt) {
+      showError(t("seller.auction.endTimeRequired", "Vui lòng chọn thời gian kết thúc"));
+      return;
+    }
+
+    const startDate = new Date(auctionData.auctionStartsAt);
+    const endDate = new Date(auctionData.auctionEndsAt);
+    if (endDate <= startDate) {
+      showError(t("seller.auction.endTimeMustBeAfterStartTime", "Thời gian kết thúc phải sau thời gian bắt đầu"));
+      return;
+    }
+
+    setRequestingAuction(true);
+    try {
+      const result = await requestAuction(
+        auctionType.toUpperCase() as "VEHICLE" | "BATTERY",
+        auctionId,
+        auctionData
+      );
+
+      if (result.message) {
+        success(t("seller.auction.requestSuccess", "Gửi yêu cầu đấu giá thành công! Vui lòng chờ admin duyệt."));
+        
+        // Update local state
+        if (auctionType === "vehicle") {
+          setVehicles(prev => prev.map(v => 
+            v.id === auctionId ? { ...v, status: "AUCTION_PENDING_APPROVAL" as any, isAuction: true } : v
+          ));
+          await refreshVehicles();
+        } else {
+          setBatteries(prev => prev.map(b => 
+            b.id === auctionId ? { ...b, status: "AUCTION_PENDING_APPROVAL" as any, isAuction: true } : b
+          ));
+          await refreshBatteries();
+        }
+        
+        setIsAuctionModalOpen(false);
+      }
+    } catch (e) {
+      showError(
+        e instanceof Error
+          ? e.message
+          : t("seller.auction.requestFailed", "Gửi yêu cầu đấu giá thất bại")
+      );
+    } finally {
+      setRequestingAuction(false);
     }
   };
 
@@ -749,6 +856,60 @@ function MyListings() {
                   </span>
                 )}
               </div>
+
+              {/* Auction Button - Chỉ hiện nếu chưa có auction */}
+              {!item.isAuction && item.status === "active" && (
+                <button
+                  onClick={() => openAuctionModal({ id: item.id, type: tab })}
+                  className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {t("seller.listings.openAuction", "Mở đấu giá")}
+                </button>
+              )}
+
+              {/* Auction Status Badge */}
+              {item.isAuction && item.auctionStatus === "AUCTION_PENDING_APPROVAL" && (
+                <div className="mt-4 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                  <span className="text-sm font-semibold text-yellow-700">
+                    ⏳ {t("seller.listings.auctionPending", "Chờ duyệt đấu giá")}
+                  </span>
+                </div>
+              )}
+
+              {item.isAuction && item.auctionStatus === "AUCTION_APPROVED" && (
+                <div className="mt-4 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-center">
+                  <span className="text-sm font-semibold text-green-700">
+                    ✓ {t("seller.listings.auctionApproved", "Đã duyệt đấu giá")}
+                  </span>
+                </div>
+              )}
+
+              {item.isAuction && item.auctionStatus === "AUCTION_REJECTED" && (
+                <div className="mt-4 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-center">
+                  <span className="text-sm font-semibold text-red-700">
+                   {t("seller.listings.auctionRejected", "Đấu giá bị từ chối")}
+                  </span>
+                </div>
+              )}
+
+              {item.isAuction && item.auctionStatus === "AUCTION_ACTIVE" && (
+                <div className="mt-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                  <span className="text-sm font-semibold text-blue-700">
+                     {t("seller.listings.auctionActive", "Đấu giá đang diễn ra")}
+                  </span>
+                </div>
+              )}
+
+              {item.isAuction && item.auctionStatus === "AUCTION_ENDED" && (
+                <div className="mt-4 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-center">
+                  <span className="text-sm font-semibold text-gray-700">
+                     {t("seller.listings.auctionEnded", "Phiên đấu giá đã kết thúc")}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -1163,6 +1324,151 @@ function MyListings() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Auction Request Modal */}
+      {isAuctionModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-2xl rounded-3xl shadow-2xl bg-white">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white rounded-t-3xl">
+              <div>
+                <h3 className="text-2xl font-bold flex items-center gap-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {t("seller.auction.title", "Mở đấu giá")}
+                </h3>
+                <p className="text-blue-100 text-sm mt-1">
+                  {t("seller.auction.subtitle", "Thiết lập thông tin đấu giá cho sản phẩm")}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAuctionModalOpen(false)}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 space-y-6">
+              {/* Starting Price */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  {t("seller.auction.startingPrice", "Giá khởi điểm")} <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={auctionData.startingPrice}
+                  onChange={(e) => setAuctionData({ ...auctionData, startingPrice: Number(e.target.value) })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="10000000"
+                />
+              </div>
+
+              {/* Bid Increment */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  {t("seller.auction.bidIncrement", "Bước giá")} <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={auctionData.bidIncrement}
+                  onChange={(e) => setAuctionData({ ...auctionData, bidIncrement: Number(e.target.value) })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="50000"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("seller.auction.bidIncrementDesc", "Khoảng giá mỗi lần nhảy")}
+                </p>
+              </div>
+
+              {/* Deposit Amount */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  {t("seller.auction.depositAmount", "Tiền cọc")} ({t("common.optional", "Tùy chọn")})
+                </label>
+                <input
+                  type="number"
+                  value={auctionData.depositAmount}
+                  onChange={(e) => setAuctionData({ ...auctionData, depositAmount: Number(e.target.value) })}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="100000"
+                />
+              </div>
+
+              {/* Time Range */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    {t("seller.auction.startTime", "Thời gian bắt đầu")} <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={auctionData.auctionStartsAt}
+                    onChange={(e) => setAuctionData({ ...auctionData, auctionStartsAt: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    {t("seller.auction.endTime", "Thời gian kết thúc")} <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={auctionData.auctionEndsAt}
+                    onChange={(e) => setAuctionData({ ...auctionData, auctionEndsAt: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Info Note */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  ℹ️ {t("seller.auction.note", "Yêu cầu đấu giá sẽ được gửi tới admin để xét duyệt. Bạn sẽ nhận được thông báo khi được duyệt.")}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-4 px-8 pb-6 border-t border-gray-200 pt-6">
+              <button
+                onClick={() => setIsAuctionModalOpen(false)}
+                disabled={requestingAuction}
+                className="px-6 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold"
+              >
+                {t("common.cancel", "Hủy")}
+              </button>
+              <button
+                onClick={handleRequestAuction}
+                disabled={requestingAuction}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {requestingAuction ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {t("seller.auction.requesting", "Đang gửi...")}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {t("seller.auction.submit", "Gửi yêu cầu")}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
