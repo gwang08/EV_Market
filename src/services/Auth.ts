@@ -355,6 +355,49 @@ export const logoutUserAPI = async (): Promise<LogoutResponse> => {
   }
 }
 
+// Helper function to store user info
+export const storeUserInfo = (user: any) => {
+  if (typeof window !== 'undefined') {
+    console.log('💾 Storing user info:', { id: user.id, email: user.email, role: user.role })
+    localStorage.setItem('userInfo', JSON.stringify(user))
+  }
+}
+
+// Helper function to get user info
+export const getUserInfo = (): any | null => {
+  if (typeof window !== 'undefined') {
+    const userInfo = localStorage.getItem('userInfo')
+    return userInfo ? JSON.parse(userInfo) : null
+  }
+  return null
+}
+
+// Helper function to get user role
+export const getUserRole = (): string | null => {
+  const userInfo = getUserInfo()
+  const role = userInfo?.role || null
+  return role
+}
+
+// Helper function to remove user info
+export const removeUserInfo = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('userInfo')
+  }
+}
+
+// Helper function to decode JWT token and get user info from it
+export const decodeJWTToken = (token: string): any | null => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    console.log('🔓 Decoded JWT payload:', payload)
+    return payload
+  } catch (error) {
+    console.error('❌ Error decoding JWT token:', error)
+    return null
+  }
+}
+
 // Helper function to store auth token with expiration
 // Default to 1 hour (60 minutes) instead of 7 days for better security
 export const storeAuthToken = (token: string, expirationHours: number = 1) => {
@@ -362,6 +405,23 @@ export const storeAuthToken = (token: string, expirationHours: number = 1) => {
     const expirationTime = Date.now() + (expirationHours * 60 * 60 * 1000) // Convert hours to milliseconds
     localStorage.setItem('authToken', token)
     localStorage.setItem('tokenExpiration', expirationTime.toString())
+    
+    // Try to decode JWT and store user info if available
+    const decoded = decodeJWTToken(token)
+    if (decoded) {
+      console.log('🔍 JWT Token decoded - Contains role?', !!decoded.role)
+      // If JWT contains user info, store it (some backends include user data in JWT)
+      if (decoded.userId || decoded.sub || decoded.email) {
+        const userFromToken = {
+          id: decoded.userId || decoded.sub,
+          email: decoded.email,
+          role: decoded.role,
+          name: decoded.name
+        }
+        console.log('💾 Storing user from JWT token:', userFromToken)
+        storeUserInfo(userFromToken)
+      }
+    }
   }
 }
 
@@ -481,6 +541,7 @@ export const removeAuthToken = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken')
     localStorage.removeItem('tokenExpiration')
+    removeUserInfo() // Also remove user info when removing token
     // Note: refreshToken is managed via HTTP-only cookies, not localStorage
   }
 }

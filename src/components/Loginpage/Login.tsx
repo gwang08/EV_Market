@@ -43,17 +43,37 @@ function Login() {
         response.data?.token ||
         response.data?.accessToken ||
         response.data?.access_token;
+      
       if (response.success && token) {
         const expirationHours = rememberMe ? 24 : 1;
         storeAuthToken(token, expirationHours);
+        
+        // Get user info from response.data.user if available
+        const userFromLogin = response.data?.user;
+        
+        if (userFromLogin && userFromLogin.role) {
+          // Store user info immediately from login response
+          const { storeUserInfo } = await import("../../services/Auth");
+          storeUserInfo(userFromLogin);
+        }
+        
         toast.success(t("auth.login.loginSuccess", "Đăng nhập thành công!"));
+        
+        // Redirect based on role
+        const userRole = userFromLogin?.role;
+        
         setTimeout(() => {
-          router.push("/");
+          if (userRole === "ADMIN") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
         }, 1200);
       } else {
         toast.error(getLocalizedErrorMessage(response.message || "", t));
       }
     } catch (error) {
+      console.error("❌ Login - Error:", error);
       toast.error(
         t("auth.login.unexpectedError", "Đã xảy ra lỗi không mong muốn")
       );

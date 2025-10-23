@@ -124,14 +124,14 @@ export default function VehiclesList() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mt-40 mb-8">
         <h1
           className="text-3xl lg:text-4xl font-bold mb-4"
           style={{ color: colors.Text }}
         >
-          {t("browse.title")} - Vehicles
+          {t("browse.title")} 
         </h1>
         <p className="text-lg" style={{ color: colors.Description }}>
           {t("browse.subtitle")}

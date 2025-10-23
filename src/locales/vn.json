@@ -11,7 +11,10 @@
     "verified": "Đã xác minh",
     "fastSale": "Bán nhanh",
     "popular": "Phổ biến",
-    "login": "Đăng nhập"
+    "login": "Đăng nhập",
+    "optional": "Không bắt buộc",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận"
   },
   "toast": {
     "imageUploadSuccess": "Tải ảnh lên thành công!",
@@ -28,6 +31,7 @@
     "home": "Trang chủ",
     "about": "Về chúng tôi",
     "browse": "Khám phá EV & Pin",
+    "auctions": "Đấu giá",
     "sell": "Đăng tin bán EV"
   },
   "header": {
@@ -191,12 +195,21 @@
       "editVehicle": "Chỉnh sửa xe",
       "editBattery": "Chỉnh sửa pin",
       "deleteConfirm": "Bạn có chắc chắn muốn xóa tin đăng này?",
+      "deleteConfirmTitle": "Xác nhận xóa",
       "updateError": "Đã xảy ra lỗi khi cập nhật",
       "cancel": "Hủy bỏ",
       "saveChanges": "Lưu thay đổi",
       "addNewImages": "Thêm ảnh mới",
       "currentImages": "Hình ảnh hiện tại",
       "newImages": "Hình ảnh mới",
+      "delete": "Xóa",
+      "editSubtitle": "Cập nhật thông tin tin đăng của bạn",
+      "openAuction": "Mở đấu giá",
+      "auctionPending": "Chờ duyệt đấu giá",
+      "auctionApproved": "Đã duyệt đấu giá",
+      "auctionRejected": "Đấu giá bị từ chối",
+      "auctionActive": "Đấu giá đang diễn ra",
+      "auctionEnded": "Phiên đấu giá đã kết thúc",
       "form": {
         "title": "Tiêu đề",
         "titlePlaceholder": "Nhập tiêu đề xe/pin",
@@ -314,7 +327,35 @@
         "warrantyPeriod": "4",
         "temperatureRange": "-20°C đến 60°C",
         "description": "Mô tả chi tiết tin đăng của bạn..."
-      }
+      },
+      "enableAuction": "Bật chức năng đấu giá cho tin đăng này",
+      "auctionDescription": "Thiết lập các thông số đấu giá để cho phép các bên đấu thầu cạnh tranh cho tin đăng của bạn.",
+      "startingPrice": "Giá khởi điểm",
+      "bidIncrement": "Bước giá",
+      "depositAmount": "Tiền đặt cọc",
+      "auctionStart": "Thời gian bắt đầu đấu giá",
+      "auctionEnd": "Thời gian kết thúc đấu giá",
+      "auctionNote": "Phiên đấu giá của bạn sẽ được quản trị viên xem xét trước khi được phê duyệt. Bạn sẽ nhận được thông báo khi được phê duyệt."
+    },
+    "auction": {
+      "title": "Mở đấu giá",
+      "subtitle": "Thiết lập thông tin đấu giá cho sản phẩm",
+      "startingPrice": "Giá khởi điểm",
+      "startingPriceRequired": "Vui lòng nhập giá khởi điểm",
+      "bidIncrement": "Bước giá",
+      "bidIncrementRequired": "Vui lòng nhập bước giá",
+      "bidIncrementDesc": "Khoảng giá mỗi lần nhảy",
+      "depositAmount": "Tiền cọc",
+      "startTime": "Thời gian bắt đầu",
+      "startTimeRequired": "Vui lòng chọn thời gian bắt đầu",
+      "endTime": "Thời gian kết thúc",
+      "endTimeRequired": "Vui lòng chọn thời gian kết thúc",
+      "endTimeMustBeAfterStartTime": "Thời gian kết thúc phải sau thời gian bắt đầu",
+      "note": "Yêu cầu đấu giá sẽ được gửi tới admin để xét duyệt. Bạn sẽ nhận được thông báo khi được duyệt.",
+      "submit": "Gửi yêu cầu",
+      "requesting": "Đang gửi...",
+      "requestSuccess": "Gửi yêu cầu đấu giá thành công! Vui lòng chờ admin duyệt.",
+      "requestFailed": "Gửi yêu cầu đấu giá thất bại"
     }
   },
   "browse": {
@@ -724,5 +765,38 @@
     "brand": "Thương hiệu",
     "created": "Ngày đăng",
     "na": "Không có thông tin"
+  },
+  "auctions": {
+    "title": "Đấu giá trực tiếp",
+    "subtitle": "Đặt giá cho xe điện và pin cao cấp theo thời gian thực",
+    "liveNow": "Đang diễn ra",
+    "activeAuctions": "Phiên đấu giá đang hoạt động",
+    "auctions": "phiên đấu giá",
+    "loadError": "Không thể tải danh sách đấu giá",
+    "endingSoon": "Sắp kết thúc",
+    "newAuctions": "Đấu giá mới",
+    "highestBid": "Giá cao nhất",
+    "currentBid": "Giá hiện tại",
+    "yourBid": "Giá của bạn",
+    "placeBid": "Đặt giá",
+    "payDeposit": "Đặt cọc",
+    "depositPaid": "Đã đặt cọc",
+    "bidPlaced": "Đặt giá thành công",
+    "depositSuccess": "Đặt cọc thành công",
+    "bidError": "Đặt giá thất bại",
+    "depositError": "Đặt cọc thất bại",
+    "loginToBid": "Đăng nhập để đặt giá",
+    "loginToDeposit": "Đăng nhập để đặt cọc",
+    "bidAmount": "Số tiền đặt giá",
+    "minimumBid": "Giá tối thiểu",
+    "depositRequired": "Yêu cầu đặt cọc",
+    "auctionEnded": "Đấu giá đã kết thúc",
+    "auctionDetails": "Chi tiết đấu giá",
+    "biddingHistory": "Lịch sử đặt giá",
+    "timeRemaining": "Thời gian còn lại",
+    "startingPrice": "Giá khởi điểm",
+    "bidIncrement": "Bước giá",
+    "totalBids": "Tổng lượt đặt giá",
+    "specifications": "Thông số kỹ thuật"
   }
 }
