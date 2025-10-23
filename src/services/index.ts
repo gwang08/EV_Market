@@ -18,6 +18,13 @@ export {
   refreshAccessToken,
   ensureValidToken,
   
+  // User info helpers
+  storeUserInfo,
+  getUserInfo,
+  getUserRole,
+  removeUserInfo,
+  decodeJWTToken,
+  
   // Google Auth functions
   loginWithGoogle,
   handleGoogleAuthSuccess,

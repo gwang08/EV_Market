@@ -4,7 +4,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import colors from '../../Utils/Color'
 import { useI18nContext } from '../../providers/I18nProvider'
-import { loginUser, storeAuthToken, loginWithGoogle } from '../../services'
+import { loginUser, storeAuthToken, storeUserInfo, loginWithGoogle } from '../../services'
 import { useToast } from '../../providers/ToastProvider'
 import { useRouter } from 'next/navigation'
 
@@ -44,16 +44,41 @@ function Login() {
     setIsLoading(true)
 
     try {
+      console.log('🔐 Login - Starting login process...')
       const response = await loginUser({ email, password })
+      
+      console.log('📦 Login - Response received:', {
+        success: response.success,
+        hasData: !!response.data,
+        hasUser: !!response.data?.user,
+        userRole: response.data?.user?.role
+      })
       
       // Check for token in different possible locations
       const token = response.data?.token || response.data?.accessToken || response.data?.access_token
+      const user = response.data?.user
       
       if (response.success && token) {
+        console.log('✅ Login - Token found, storing auth data...')
+        console.log('👤 Login - User data:', {
+          id: user?.id,
+          email: user?.email,
+          role: user?.role,
+          name: user?.name
+        })
+        
         // Store token with expiration based on remember me option
         // Use 60 minutes (1 hour) for regular, 24 hours for remember me
         const expirationHours = rememberMe ? 24 : 1 // 24 hours if remember me, otherwise 1 hour
         storeAuthToken(token, expirationHours)
+        
+        // Store user info if available from response
+        if (user) {
+          console.log('💾 Login - Storing user info from response')
+          storeUserInfo(user)
+        } else {
+          console.warn('⚠️ Login - No user data in response, relying on JWT token decode')
+        }
         
         // Note: refreshToken is now managed via HTTP-only cookies by backend
         console.log('✅ Login - Token stored, refreshToken managed via cookies')
@@ -61,15 +86,32 @@ function Login() {
         // Show success toast
         toast.success(t('auth.login.loginSuccess', 'Đăng nhập thành công!'))
         
-        // Redirect to home page or dashboard after a short delay
+        // Determine redirect URL based on user role
+        let redirectUrl = '/'
+        const userRole = user?.role?.toUpperCase()
+        
+        console.log('🔍 Login - User role detected:', userRole)
+        
+        if (userRole === 'ADMIN') {
+          redirectUrl = '/admin'
+          console.log('👑 Login - Redirecting to admin dashboard')
+        } else {
+          redirectUrl = '/'
+          console.log('👤 Login - Redirecting to home page')
+        }
+        
+        // Redirect to appropriate page after a short delay
         setTimeout(() => {
-          router.push('/')
+          console.log('🔄 Login - Redirecting to:', redirectUrl)
+          router.push(redirectUrl)
         }, 1500)
       } else {
+        console.error('❌ Login - Login failed:', response.message)
         // Use localized error message based on server response
         toast.error(getLocalizedErrorMessage(response.message || '', t))
       }
     } catch (error) {
+      console.error('❌ Login - Unexpected error:', error)
       toast.error(t('auth.login.unexpectedError', 'Đã xảy ra lỗi không mong muốn'))
     } finally {
       setIsLoading(false)
