@@ -52,6 +52,7 @@ function MyListings() {
   const [editImages, setEditImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
@@ -214,7 +215,15 @@ function MyListings() {
   };
 
   const removeExistingImage = (index: number) => {
-    setEditImages((prev) => prev.filter((_, i) => i !== index));
+    setEditImages((prev) => {
+      const removed = prev[index];
+      if (removed) {
+        setImagesToDelete((curr) =>
+          curr.includes(removed) ? curr : [...curr, removed]
+        );
+      }
+      return prev.filter((_, i) => i !== index);
+    });
     success(t("toast.imageRemoveSuccess", "Image removed successfully!"));
   };
 
@@ -333,6 +342,7 @@ function MyListings() {
 
     setNewImages([]);
     setImagePreviews([]);
+    setImagesToDelete([]);
     setValidationErrors([]);
     setIsModalOpen(true);
   };
@@ -526,6 +536,7 @@ function MyListings() {
           model: formData.model,
           status: formData.status as "AVAILABLE" | "SOLD" | "DELISTED",
           images: newImages.length > 0 ? newImages : undefined,
+          imagesToDelete: imagesToDelete.length > 0 ? imagesToDelete : undefined,
         };
         console.log("Updating vehicle with payload:", payload);
         result = await updateVehicle(editId, payload);
@@ -539,6 +550,7 @@ function MyListings() {
           description: formData.description,
           brand: formData.brand,
           images: newImages.length > 0 ? newImages : undefined,
+          imagesToDelete: imagesToDelete.length > 0 ? imagesToDelete : undefined,
         };
         console.log("Updating battery with payload:", payload);
         result = await updateBattery(editId, payload);
