@@ -11,7 +11,6 @@ import { Vehicle } from "../../services/Vehicle";
 import { Battery } from "../../services/Battery";
 import { getCurrentUserId } from "../../services";
 import { Product, FilterState } from "../../types/product";
-import MemberOnlyWrapper from "../../components/common/MemberOnlyWrapper";
 
 function BrowsePageContent() {
   const searchParams = useSearchParams();
@@ -185,7 +184,7 @@ function BrowsePageContent() {
   };
 
   return (
-    <MemberOnlyWrapper>
+    <>
       <div className="min-h-screen bg-white mt-25">
         <Header />
 
@@ -225,7 +224,7 @@ function BrowsePageContent() {
 
         <Footer />
       </div>
-    </MemberOnlyWrapper>
+    </>
   );
 }
 

@@ -87,7 +87,7 @@ export default function PurchaseHistory() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 md:py-8 mt-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 md:mb-8">

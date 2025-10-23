@@ -57,17 +57,52 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
         setLoading(true);
         // Try VEHICLE first, then BATTERY if fails
         let data;
+        let listingType: 'VEHICLE' | 'BATTERY' = 'VEHICLE';
         try {
           data = await getAuctionDetail('VEHICLE', auctionId);
+          listingType = 'VEHICLE';
         } catch (error) {
           data = await getAuctionDetail('BATTERY', auctionId);
+          listingType = 'BATTERY';
         }
         
         if (data && data.data) {
           const auctionData = data.data;
+          
+          // Debug: Log auction data
+          console.log('🎯 Auction Data:', {
+            hasUserDeposit: auctionData.hasUserDeposit,
+            userDeposit: auctionData.userDeposit,
+            bidsCount: auctionData.bids?.length,
+            startsAt: new Date(auctionData.auctionStartsAt).toLocaleString('vi-VN'),
+            endsAt: new Date(auctionData.auctionEndsAt).toLocaleString('vi-VN'),
+            currentTime: new Date().toLocaleString('vi-VN')
+          });
+          
+          // Add listingType to auction data
+          auctionData.listingType = listingType;
+          
+          // Calculate current bid from bids array
+          const highestBid = auctionData.bids && auctionData.bids.length > 0
+            ? Math.max(...auctionData.bids.map((bid: any) => bid.amount))
+            : auctionData.startingPrice;
+          
+          auctionData.currentBid = highestBid;
+          
+          // Check if user has already paid deposit from API response
+          const hasDeposit = auctionData.hasUserDeposit === true || 
+                            (auctionData.userDeposit?.status === 'PAID');
+          
+          console.log('💰 Deposit Status:', {
+            hasUserDeposit: auctionData.hasUserDeposit,
+            userDepositStatus: auctionData.userDeposit?.status,
+            finalHasDeposit: hasDeposit
+          });
+          
           setAuction(auctionData);
-          setCurrentBid(auctionData.currentBid || auctionData.startingPrice);
-          setBidAmount((auctionData.currentBid || auctionData.startingPrice) + auctionData.bidIncrement);
+          setCurrentBid(highestBid);
+          setBidAmount(highestBid + auctionData.bidIncrement);
+          setHasDeposit(hasDeposit);
         }
       } catch (error) {
         showError(
@@ -86,7 +121,13 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
     if (!auction) return;
     
     const timer = setInterval(() => {
-      setTimeLeft(getTimeRemaining(auction.auctionEndsAt));
+      const remaining = getTimeRemaining(auction.auctionEndsAt);
+      setTimeLeft(remaining);
+      
+      // Debug: Log countdown
+      if (remaining.isExpired) {
+        console.log('⏰ Auction has ENDED!');
+      }
     }, 1000);
 
     return () => clearInterval(timer);
@@ -99,7 +140,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       return;
     }
 
-    if (!auction) return;
+    if (!auction || !auction.listingType) return;
 
     try {
       setIsPayingDeposit(true);
@@ -111,9 +152,24 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       setHasDeposit(true);
       showSuccess(t("auctions.depositSuccess"));
     } catch (error) {
-      showError(
-        error instanceof Error ? error.message : t("auctions.depositError")
-      );
+      const errorMessage = error instanceof Error ? error.message : t("auctions.depositError");
+      const lowerError = errorMessage.toLowerCase();
+      
+      console.log('🚨 Deposit Error:', errorMessage);
+      
+      // Check for insufficient balance error
+      if (lowerError.includes('insufficient') || 
+          lowerError.includes('not enough') ||
+          lowerError.includes('balance')) {
+        showError(
+          t("auctions.errors.insufficientBalance"),
+          6000,
+          t("auctions.errors.goToWallet"),
+          () => router.push('/wallet')
+        );
+      } else {
+        showError(errorMessage);
+      }
     } finally {
       setIsPayingDeposit(false);
     }
@@ -131,7 +187,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       return;
     }
 
-    if (!auction) return;
+    if (!auction || !auction.listingType) return;
 
     if (bidAmount < currentBid + auction.bidIncrement) {
       showError(`Minimum bid is ${formatAuctionPrice(currentBid + auction.bidIncrement)}`);
@@ -145,9 +201,51 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       setBidAmount(bidAmount + auction.bidIncrement);
       showSuccess(t("auctions.bidPlaced"));
     } catch (error) {
-      showError(
-        error instanceof Error ? error.message : t("auctions.bidError")
-      );
+      const errorMessage = error instanceof Error ? error.message : t("auctions.bidError");
+      
+      console.log('🚨 Bid Error Caught:', {
+        error,
+        errorMessage,
+        errorType: typeof error,
+        errorKeys: error instanceof Error ? Object.keys(error) : 'not an Error object'
+      });
+      
+      // Handle specific error cases (case-insensitive matching)
+      const lowerError = errorMessage.toLowerCase();
+      
+      if (lowerError.includes('must pay') || lowerError.includes('deposit') && lowerError.includes('before')) {
+        console.log('❌ Showing deposit required error');
+        showError(t("auctions.errors.depositRequiredError"));
+      } else if (lowerError.includes('insufficient') || lowerError.includes('not enough') || lowerError.includes('balance')) {
+        console.log('❌ Showing insufficient balance error');
+        showError(
+          t("auctions.errors.insufficientBalance"),
+          6000,
+          t("auctions.errors.goToWallet"),
+          () => router.push('/wallet')
+        );
+      } else if (lowerError.includes('cannot bid') && lowerError.includes('own')) {
+        console.log('❌ Showing own auction error');
+        showError(t("auctions.errors.ownAuctionError"));
+      } else if (lowerError.includes('already') && lowerError.includes('highest')) {
+        console.log('❌ Showing already highest bidder error');
+        showError(t("auctions.errors.alreadyHighestBidder"));
+      } else if (lowerError.includes('not started') || lowerError.includes('not yet')) {
+        console.log('❌ Showing auction not started error');
+        showError(t("auctions.errors.auctionNotStarted"));
+      } else if (lowerError.includes('ended') || lowerError.includes('already ended')) {
+        console.log('❌ Showing auction ended error');
+        showError(t("auctions.errors.auctionAlreadyEnded"));
+      } else if (lowerError.includes('must be at least') || lowerError.includes('minimum bid')) {
+        console.log('❌ Showing bid too low error');
+        // Extract amount from error message if possible
+        const match = errorMessage.match(/\d+/);
+        const amount = match ? formatAuctionPrice(parseInt(match[0])) : '';
+        showError(t("auctions.errors.bidTooLow").replace('{amount}', amount));
+      } else {
+        console.log('❌ Showing generic error:', errorMessage);
+        showError(errorMessage);
+      }
     } finally {
       setIsPlacingBid(false);
     }
@@ -165,19 +263,8 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   const Icon = isVehicle ? Car : Battery;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <button
-            onClick={() => router.push("/auctions")}
-            className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">{t("auctions.title", "Back to Auctions")}</span>
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white mt-40">
+   
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -321,22 +408,53 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
                 {activeTab === "bids" && (
                   <div className="space-y-3">
-                    <p className="text-sm text-slate-500 mb-4">Recent bidding activity</p>
-                    {/* Mock bid history */}
-                    {[
-                      { user: "Current High Bid", amount: currentBid, time: "Now" },
-                    ].map((bid, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <User className="w-5 h-5 text-slate-400" />
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">{bid.user}</p>
-                            <p className="text-xs text-slate-500">{bid.time}</p>
-                          </div>
-                        </div>
-                        <p className="text-lg font-bold text-blue-600">{formatAuctionPrice(bid.amount)}</p>
+                    {auction.bids && auction.bids.length > 0 ? (
+                      <>
+                        <p className="text-sm text-slate-500 mb-4">
+                          {auction.bids.length} {auction.bids.length === 1 ? 'bid' : 'bids'} placed
+                        </p>
+                        {auction.bids
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((bid, idx) => (
+                            <div key={bid.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                  idx === 0 ? 'bg-green-100' : 'bg-slate-200'
+                                }`}>
+                                  {idx === 0 ? (
+                                    <CheckCircle className="w-5 h-5 text-green-600" />
+                                  ) : (
+                                    <User className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">
+                                    {bid.bidder?.name || `Bidder ${bid.bidderId.slice(0, 8)}...`}
+                                    {idx === 0 && <span className="ml-2 text-green-600 font-bold">• Highest Bid</span>}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {new Date(bid.createdAt).toLocaleString('vi-VN', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className={`text-lg font-bold ${idx === 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                                {formatAuctionPrice(bid.amount)}
+                              </p>
+                            </div>
+                          ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Gavel className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 text-sm">No bids placed yet. Be the first to bid!</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
@@ -380,7 +498,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                   <Clock className="w-5 h-5" />
                   <span className="text-sm font-medium">{t("auctions.timeRemaining")}</span>
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="grid grid-cols-4 gap-2 text-center mb-4">
                   {[
                     { value: timeLeft.days, label: "Days" },
                     { value: timeLeft.hours, label: "Hrs" },
@@ -392,6 +510,31 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                       <div className="text-xs opacity-80">{item.label}</div>
                     </div>
                   ))}
+                </div>
+                {/* Auction Start Time */}
+                <div className="pt-3 border-t border-white/20 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">Started:</span>
+                    <span className="font-semibold">
+                      {new Date(auction.auctionStartsAt).toLocaleString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="opacity-80">Ends:</span>
+                    <span className="font-semibold">
+                      {new Date(auction.auctionEndsAt).toLocaleString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
                 </div>
               </div>
 

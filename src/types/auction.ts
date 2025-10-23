@@ -17,6 +17,20 @@ export interface AuctionSpecifications {
   temperatureRange?: string
 }
 
+export interface Bid {
+  id: string
+  amount: number
+  createdAt: string
+  bidderId: string
+  bidder?: {
+    id: string
+    name: string
+    avatar?: string
+  }
+  vehicleId: string | null
+  batteryId: string | null
+}
+
 export interface LiveAuction {
   id: string
   title: string
@@ -43,27 +57,11 @@ export interface LiveAuction {
   updatedAt: string
   sellerId: string
   seller: AuctionSeller
-  listingType: 'BATTERY' | 'VEHICLE'
-}
-
-export interface LiveAuctionsResponse {
-  message: string
-  data: {
-    results: LiveAuction[]
-    page: number
-    limit: number
-    totalPages: number
-    totalResults: number
-  }
-}
-
-export interface Bid {
-  id: string
-  amount: number
-  createdAt: string
-  bidderId: string
-  vehicleId: string | null
-  batteryId: string | null
+  listingType?: 'BATTERY' | 'VEHICLE'
+  bids?: Bid[]
+  currentBid?: number
+  hasUserDeposit?: boolean
+  userDeposit?: Deposit
 }
 
 export interface BidResponse {
@@ -93,4 +91,15 @@ export interface PlaceBidRequest {
 
 export interface PayDepositRequest {
   amount: number
+}
+
+export interface LiveAuctionsResponse {
+  message: string
+  data: {
+    results: LiveAuction[]
+    page: number
+    limit: number
+    totalPages: number
+    totalResults: number
+  }
 }

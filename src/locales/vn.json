@@ -797,6 +797,16 @@
     "startingPrice": "Giá khởi điểm",
     "bidIncrement": "Bước giá",
     "totalBids": "Tổng lượt đặt giá",
-    "specifications": "Thông số kỹ thuật"
+    "specifications": "Thông số kỹ thuật",
+    "errors": {
+      "depositRequiredError": "Bạn phải đặt cọc trước khi đấu giá. Vui lòng đặt cọc trước.",
+      "insufficientBalance": "Số dư ví không đủ. Vui lòng nạp thêm tiền vào ví.",
+      "ownAuctionError": "Bạn không thể đấu giá sản phẩm của chính mình.",
+      "alreadyHighestBidder": "Bạn đã là người đặt giá cao nhất.",
+      "auctionNotStarted": "Phiên đấu giá chưa bắt đầu.",
+      "auctionAlreadyEnded": "Phiên đấu giá đã kết thúc.",
+      "bidTooLow": "Giá đặt của bạn phải ít nhất {amount}.",
+      "goToWallet": "Đến trang Ví"
+    }
   }
 }
