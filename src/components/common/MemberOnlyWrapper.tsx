@@ -22,27 +22,22 @@ const MemberOnlyWrapper: React.FC<MemberOnlyWrapperProps> = ({
 
   useEffect(() => {
     const checkAuth = () => {
-      console.log("🔐 MemberOnlyWrapper - Checking authentication and role...");
       
       const authenticated = isAuthenticated();
       
       if (!authenticated) {
-        console.log("⚠️ MemberOnlyWrapper - Not authenticated, redirecting to:", fallbackUrl);
         router.push(fallbackUrl);
         return;
       }
       
       const userRole = getUserRole();
-      console.log("👤 MemberOnlyWrapper - User role:", userRole);
       
       // Only MEMBER can access
       if (userRole !== "MEMBER") {
-        console.log("⚠️ MemberOnlyWrapper - Not a MEMBER, redirecting admin to /admin");
         router.push("/admin");
         return;
       }
       
-      console.log("✅ MemberOnlyWrapper - Authorization successful");
       setIsAuthorized(true);
     };
 

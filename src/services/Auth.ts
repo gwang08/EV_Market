@@ -376,14 +376,12 @@ export const getUserInfo = (): any | null => {
 export const getUserRole = (): string | null => {
   const userInfo = getUserInfo()
   const role = userInfo?.role || null
-  console.log('🔍 Getting user role:', role)
   return role
 }
 
 // Helper function to remove user info
 export const removeUserInfo = () => {
   if (typeof window !== 'undefined') {
-    console.log('🗑️ Removing user info')
     localStorage.removeItem('userInfo')
   }
 }

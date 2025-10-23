@@ -8,7 +8,7 @@ export interface Battery {
   description: string
   price: number
   images: string[]
-  status: 'AVAILABLE' | 'SOLD' | 'DELISTED'
+  status: 'AVAILABLE' | 'SOLD' | 'DELISTED' | 'AUCTION_PENDING_APPROVAL' | 'AUCTION_APPROVED' | 'AUCTION_REJECTED' | 'AUCTION_ACTIVE' | 'AUCTION_ENDED'
   brand: string
   capacity: number
   year: number
@@ -24,6 +24,8 @@ export interface Battery {
     temperatureRange: string
   }
   isVerified: boolean
+  isAuction?: boolean
+  auctionRejectionReason?: string | null
   createdAt: string
   updatedAt: string
   sellerId: string

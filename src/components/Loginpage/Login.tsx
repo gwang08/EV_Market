@@ -38,7 +38,6 @@ function Login() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      console.log("🔑 Login - Starting login process...");
       const response = await loginUser({ email, password });
       const token =
         response.data?.token ||
@@ -46,33 +45,27 @@ function Login() {
         response.data?.access_token;
       
       if (response.success && token) {
-        console.log("✅ Login - Token received, storing...");
         const expirationHours = rememberMe ? 24 : 1;
         storeAuthToken(token, expirationHours);
         
         // Get user info from response.data.user if available
         const userFromLogin = response.data?.user;
-        console.log("👤 Login - User from login response:", userFromLogin);
         
         if (userFromLogin && userFromLogin.role) {
           // Store user info immediately from login response
           const { storeUserInfo } = await import("../../services/Auth");
           storeUserInfo(userFromLogin);
-          console.log("💾 Login - User info stored from login response");
         }
         
         toast.success(t("auth.login.loginSuccess", "Đăng nhập thành công!"));
         
         // Redirect based on role
         const userRole = userFromLogin?.role;
-        console.log("🔀 Login - Redirecting based on role:", userRole);
         
         setTimeout(() => {
           if (userRole === "ADMIN") {
-            console.log("🔀 Login - Redirecting to /admin");
             router.push("/admin");
           } else {
-            console.log("🔀 Login - Redirecting to /");
             router.push("/");
           }
         }, 1200);
