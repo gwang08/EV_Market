@@ -895,20 +895,30 @@ function MyListings() {
                 </div>
               )}
 
-              {item.isAuction && item.auctionStatus === "AUCTION_ACTIVE" && (
-                <div className="mt-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                  <span className="text-sm font-semibold text-blue-700">
-                     {t("seller.listings.auctionActive", "Đấu giá đang diễn ra")}
-                  </span>
-                </div>
+              {item.isAuction && (item.auctionStatus === "AUCTION_ACTIVE" || item.auctionStatus === "AUCTION_LIVE") && (
+                <button
+                  onClick={() => window.location.href = `/auction/${item.id}`}
+                  className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {t("seller.listings.viewAuction", "Xem đấu giá đang diễn ra")}
+                </button>
               )}
 
               {item.isAuction && item.auctionStatus === "AUCTION_ENDED" && (
-                <div className="mt-4 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-center">
-                  <span className="text-sm font-semibold text-gray-700">
-                     {t("seller.listings.auctionEnded", "Phiên đấu giá đã kết thúc")}
-                  </span>
-                </div>
+                <button
+                  onClick={() => window.location.href = `/auction/${item.id}`}
+                  className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-semibold rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {t("seller.listings.viewAuctionEnded", "Xem kết quả đấu giá")}
+                </button>
               )}
             </div>
           </div>

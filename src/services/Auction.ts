@@ -21,7 +21,15 @@ const handleApiResponse = async (response: Response) => {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || 'Something went wrong')
+    // Enhanced error message extraction
+    const errorMessage = data.message || data.error || data.errors?.[0]?.message || 'Something went wrong'
+    console.error('🚨 API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      errorMessage
+    })
+    throw new Error(errorMessage)
   }
 
   return data
@@ -177,7 +185,22 @@ export const getTimeRemaining = (endDate: string): {
   seconds: number
   isExpired: boolean
 } => {
-  const total = Date.parse(endDate) - Date.now()
+  // Parse end date and current time in UTC to avoid timezone issues
+  const endTime = new Date(endDate).getTime()
+  const now = new Date().getTime()
+  const total = endTime - now
+  
+  // Debug log
+  console.log('⏰ Time Calculation:', {
+    endDate,
+    endTime: new Date(endTime).toISOString(),
+    now: new Date(now).toISOString(),
+    nowLocal: new Date(now).toLocaleString('vi-VN'),
+    endLocal: new Date(endTime).toLocaleString('vi-VN'),
+    diffMs: total,
+    diffMinutes: Math.floor(total / 1000 / 60)
+  })
+  
   const seconds = Math.floor((total / 1000) % 60)
   const minutes = Math.floor((total / 1000 / 60) % 60)
   const hours = Math.floor((total / (1000 * 60 * 60)) % 24)
@@ -185,10 +208,10 @@ export const getTimeRemaining = (endDate: string): {
 
   return {
     total,
-    days,
-    hours,
-    minutes,
-    seconds,
+    days: Math.max(0, days),
+    hours: Math.max(0, hours),
+    minutes: Math.max(0, minutes),
+    seconds: Math.max(0, seconds),
     isExpired: total <= 0
   }
 }

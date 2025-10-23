@@ -151,7 +151,7 @@ function ProfileSettings({}: ProfileSettingsProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{backgroundColor: colors.Background}}>
+      <div className="min-h-screen " style={{backgroundColor: colors.Background}}>
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Skeleton UI for Profile Settings */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -191,11 +191,11 @@ function ProfileSettings({}: ProfileSettingsProps) {
   }
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: colors.Background}}>
+    <div className="min-h-screen mt-40" style={{backgroundColor: colors.Background}}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{color: colors.Text}}>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2" >
             {t('profile.settings.title', 'Profile Settings')}
           </h1>
           <p style={{color: colors.SubText}}>

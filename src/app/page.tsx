@@ -3,7 +3,6 @@ import Image from "next/image";
 import HomePage from "./home/page";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import MemberOnlyWrapper from "@/components/common/MemberOnlyWrapper";
 
 export default function Home() {
   // Homepage Structured Data - Marketplace
@@ -39,7 +38,7 @@ export default function Home() {
   };
 
   return (
-    <MemberOnlyWrapper>
+    
       <div>
         {/* Structured Data for Homepage */}
         <script
@@ -55,6 +54,6 @@ export default function Home() {
         <HomePage />
         <Footer/>
       </div>
-    </MemberOnlyWrapper>
+   
   );
 }
