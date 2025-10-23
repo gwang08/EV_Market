@@ -284,6 +284,7 @@ export interface UpdateBatteryRequest {
   health?: number;
   images?: (string | File)[];
   specifications?: Partial<Battery['specifications']>;
+  imagesToDelete?: string[];
 }
 
 // Update battery (multipart aware)
@@ -313,6 +314,9 @@ export const updateBattery = async (id: string, payload: UpdateBatteryRequest): 
         for (const img of payload.images) {
           if (img instanceof File) formData.append('images', img)
         }
+      }
+      if (payload.imagesToDelete && payload.imagesToDelete.length > 0) {
+        formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete))
       }
 
       response = await fetch(`${API_BASE_URL}/batteries/${id}`, {
