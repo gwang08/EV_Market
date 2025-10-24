@@ -23,12 +23,7 @@ const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
     // Enhanced error message extraction
     const errorMessage = data.message || data.error || data.errors?.[0]?.message || 'Something went wrong'
-    console.error('🚨 API Error:', {
-      status: response.status,
-      statusText: response.statusText,
-      data,
-      errorMessage
-    })
+   
     throw new Error(errorMessage)
   }
 
@@ -37,15 +32,25 @@ const handleApiResponse = async (response: Response) => {
 
 /**
  * Get all live auctions
- * No authentication required
+ * Requires authentication
  */
 export const getLiveAuctions = async (page = 1, limit = 10): Promise<LiveAuctionsResponse> => {
   try {
+    const { ensureValidToken } = await import('./Auth')
+    const token = await ensureValidToken()
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/auctions/live?time=future`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      headers,
+      credentials: 'include',
     })
 
     const data = await handleApiResponse(response)

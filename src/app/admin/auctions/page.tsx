@@ -29,7 +29,11 @@ function AuctionManagementPage() {
       setLoading(true);
       const response = await getAuctionRequests(page, 9);
       if (response.success && response.data) {
-        setRequests(response.data.requests);
+        // Filter only PENDING requests
+        const pendingRequests = response.data.requests.filter(
+          (req: AuctionRequest) => req.status === "AUCTION_PENDING_APPROVAL"
+        );
+        setRequests(pendingRequests);
         setTotalPages(response.data.totalPages);
       }
     } catch (err) {
@@ -91,10 +95,10 @@ function AuctionManagementPage() {
           {/* Header */}
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Quản lý đấu giá
+              Duyệt yêu cầu đấu giá
             </h2>
             <p className="text-gray-600">
-              Duyệt và quản lý các yêu cầu đấu giá từ người bán
+              Phê duyệt hoặc từ chối các yêu cầu đấu giá đang chờ duyệt từ người bán
             </p>
           </div>
 
