@@ -11,6 +11,7 @@ import {
   BarChart3,
   Menu,
   X,
+  History,
 } from "lucide-react";
 import { useI18nContext } from "@/providers/I18nProvider";
 
@@ -26,7 +27,7 @@ export default function AdminSidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const menuItems = [
     {
       icon: LayoutDashboard,
-      label: "Dashboard",
+      label: "Thống kê & Báo cáo",
       href: "/admin",
       key: "dashboard",
     },
@@ -44,9 +45,15 @@ export default function AdminSidebar({ isOpen, toggleSidebar }: SidebarProps) {
     },
     {
       icon: Gavel,
-      label: "Quản lý đấu giá",
+      label: "Duyệt đấu giá",
       href: "/admin/auctions",
       key: "auctions",
+    },
+    {
+      icon: History,
+      label: "Lịch sử đấu giá",
+      href: "/admin/auction-history",
+      key: "auction-history",
     },
     {
       icon: DollarSign,
@@ -54,12 +61,7 @@ export default function AdminSidebar({ isOpen, toggleSidebar }: SidebarProps) {
       href: "/admin/fees",
       key: "fees",
     },
-    {
-      icon: BarChart3,
-      label: "Thống kê & Báo cáo",
-      href: "/admin/reports",
-      key: "reports",
-    },
+ 
   ];
 
   return (

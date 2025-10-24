@@ -152,3 +152,57 @@ export const getPendingListings = async (page = 1, limit = 10) => {
     },
   };
 };
+
+// Get auction history (all statuses except pending)
+export const getAuctionHistory = async (page = 1, limit = 10, status?: string) => {
+  try {
+    const token = await ensureValidToken();
+    
+    const response = await fetch(
+      `${API_BASE_URL}/admin/auction-requests?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch auction history");
+    }
+
+    // Filter out PENDING requests and apply status filter if provided
+    let filteredAuctions = data.data.requests.filter(
+      (auction: any) => auction.status !== "AUCTION_PENDING_APPROVAL"
+    );
+
+    if (status && status !== "ALL") {
+      filteredAuctions = filteredAuctions.filter(
+        (auction: any) => auction.status === status
+      );
+    }
+
+    return {
+      success: true,
+      data: {
+        auctions: filteredAuctions,
+        page: data.data.page,
+        limit: data.data.limit,
+        totalPages: data.data.totalPages,
+        totalResults: filteredAuctions.length,
+      },
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error fetching auction history:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};

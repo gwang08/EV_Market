@@ -886,7 +886,7 @@ function MyListings() {
               {item.isAuction && item.auctionStatus === "AUCTION_PENDING_APPROVAL" && (
                 <div className="mt-4 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
                   <span className="text-sm font-semibold text-yellow-700">
-                    ⏳ {t("seller.listings.auctionPending", "Chờ duyệt đấu giá")}
+                     {t("seller.listings.auctionPending", "Chờ duyệt đấu giá")}
                   </span>
                 </div>
               )}
