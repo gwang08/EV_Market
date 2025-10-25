@@ -1,5 +1,5 @@
 // Auth service for login and register API calls
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://beevmarket-production.up.railway.app/api/v1'
 
 // Types for API requests and responses
 export interface LoginRequest {
@@ -202,12 +202,9 @@ export const registerUser = async (userData: RegisterRequest): Promise<RegisterR
 // Refresh Token API call
 export const refreshAccessToken = async (refreshToken?: string): Promise<RefreshTokenResponse> => {
   try {
-    console.log('🔄 Refresh Token - Starting refresh process...')
-    console.log('🔄 Refresh Token - Using cookie-based refresh token')
     
     // Check if we're in browser and have cookies
     if (typeof document !== 'undefined') {
-      console.log('🔄 Refresh Token - All cookies:', document.cookie)
       
       // Check if refreshToken cookie exists
       const refreshTokenExists =
@@ -215,7 +212,6 @@ export const refreshAccessToken = async (refreshToken?: string): Promise<Refresh
         document.cookie.includes('refresh_token') ||
         document.cookie.includes('rt=') ||
         document.cookie.includes('refresh=')
-      console.log('🔄 Refresh Token - Refresh token cookie exists:', refreshTokenExists)
       
       if (!refreshTokenExists) {
         // Silently return failure without spamming console errors
@@ -231,11 +227,9 @@ export const refreshAccessToken = async (refreshToken?: string): Promise<Refresh
       const refreshCookie = cookies.find(c => c.trim().startsWith('refreshToken='))
       if (refreshCookie) {
         const tokenValue = refreshCookie.split('=')[1]
-        console.log('🔄 Refresh Token - Token preview:', tokenValue ? `${tokenValue.substring(0, 20)}...` : 'Empty')
       }
     }
     
-    console.log('🔄 Refresh Token - Making API call to:', `${API_BASE_URL}/auth/refresh-token`)
     
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
@@ -246,8 +240,6 @@ export const refreshAccessToken = async (refreshToken?: string): Promise<Refresh
       // No body needed since refreshToken is in cookie
     })
 
-    console.log('🔄 Refresh Token - API response status:', response.status)
-    console.log('🔄 Refresh Token - API response headers:', Object.fromEntries(response.headers.entries()))
     
     let data
     let responseText = ''
@@ -256,36 +248,24 @@ export const refreshAccessToken = async (refreshToken?: string): Promise<Refresh
     if (!response.ok) {
       try {
         responseText = await response.clone().text()
-        console.error('🔄 Refresh Token - Error response text:', responseText)
       } catch (textError) {
-        console.error('🔄 Refresh Token - Could not read response text:', textError)
       }
     }
     
     try {
       data = await handleApiResponse(response)
     } catch (apiError) {
-      console.error('🔄 Refresh Token - API Error:', apiError)
-      console.error('🔄 Refresh Token - Response status:', response.status)
       if (responseText) {
-        console.error('🔄 Refresh Token - Response text:', responseText)
       }
       throw apiError
     }
     
-    console.log('🔄 Refresh Token - API response data:', {
-      success: data.success,
-      message: data.message,
-      hasAccessToken: !!data.data?.accessToken,
-      accessTokenPreview: data.data?.accessToken ? `${data.data.accessToken.substring(0, 20)}...` : null
-    })
+   
     
     // Store the new access token
     if (data.data?.accessToken) {
-      console.log('✅ Refresh Token - Storing new access token')
       storeAuthToken(data.data.accessToken)
     } else {
-      console.error('❌ Refresh Token - No access token in response')
     }
     
     return {
@@ -294,7 +274,6 @@ export const refreshAccessToken = async (refreshToken?: string): Promise<Refresh
       data: data.data || data
     }
   } catch (error) {
-    console.error('❌ Refresh Token - Error occurred:', error)
     
     if (error instanceof AuthError) {
       return {
@@ -358,7 +337,6 @@ export const logoutUserAPI = async (): Promise<LogoutResponse> => {
 // Helper function to store user info
 export const storeUserInfo = (user: any) => {
   if (typeof window !== 'undefined') {
-    console.log('💾 Storing user info:', { id: user.id, email: user.email, role: user.role })
     localStorage.setItem('userInfo', JSON.stringify(user))
   }
 }
@@ -390,7 +368,6 @@ export const removeUserInfo = () => {
 export const decodeJWTToken = (token: string): any | null => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
-    console.log('🔓 Decoded JWT payload:', payload)
     return payload
   } catch (error) {
     console.error('❌ Error decoding JWT token:', error)
@@ -399,17 +376,30 @@ export const decodeJWTToken = (token: string): any | null => {
 }
 
 // Helper function to store auth token with expiration
-// Default to 1 hour (60 minutes) instead of 7 days for better security
-export const storeAuthToken = (token: string, expirationHours: number = 1) => {
+// Now uses JWT's own expiration time if available for accuracy
+export const storeAuthToken = (token: string, expirationHours?: number) => {
   if (typeof window !== 'undefined') {
-    const expirationTime = Date.now() + (expirationHours * 60 * 60 * 1000) // Convert hours to milliseconds
     localStorage.setItem('authToken', token)
+    
+    // Try to get expiration from JWT token itself
+    const decoded = decodeJWTToken(token)
+    let expirationTime: number
+    
+    if (decoded?.exp) {
+      // Use JWT's expiration time (exp is in seconds, convert to milliseconds)
+      expirationTime = decoded.exp * 1000
+    } else if (expirationHours) {
+      // Use custom expiration hours if provided
+      expirationTime = Date.now() + (expirationHours * 60 * 60 * 1000)
+    } else {
+      // Default to 24 hours if nothing specified
+      expirationTime = Date.now() + (24 * 60 * 60 * 1000)
+    }
+    
     localStorage.setItem('tokenExpiration', expirationTime.toString())
     
     // Try to decode JWT and store user info if available
-    const decoded = decodeJWTToken(token)
     if (decoded) {
-      console.log('🔍 JWT Token decoded - Contains role?', !!decoded.role)
       // If JWT contains user info, store it (some backends include user data in JWT)
       if (decoded.userId || decoded.sub || decoded.email) {
         const userFromToken = {
@@ -418,7 +408,6 @@ export const storeAuthToken = (token: string, expirationHours: number = 1) => {
           role: decoded.role,
           name: decoded.name
         }
-        console.log('💾 Storing user from JWT token:', userFromToken)
         storeUserInfo(userFromToken)
       }
     }
@@ -461,15 +450,32 @@ const isJWTTokenExpired = (token: string): boolean => {
 }
 
 // Helper function to extend current session (if token is still valid)
+// Note: This only extends localStorage expiration, not JWT expiration
 export const extendSession = (additionalHours: number = 1): boolean => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('authToken')
     
-    if (token && !isJWTTokenExpired(token)) {
-      // Only extend if JWT token itself is still valid
+    if (!token) return false
+    
+    // Check if JWT token is still valid
+    const decoded = decodeJWTToken(token)
+    if (decoded?.exp) {
+      const jwtExpired = decoded.exp * 1000 < Date.now()
+      if (jwtExpired) {
+        console.log('⚠️ Cannot extend session: JWT token already expired')
+        return false
+      }
+      
+      // Extend localStorage expiration (but not beyond JWT expiration)
       const currentExpiration = localStorage.getItem('tokenExpiration')
       const newExpiration = (currentExpiration ? parseInt(currentExpiration) : Date.now()) + (additionalHours * 60 * 60 * 1000)
-      localStorage.setItem('tokenExpiration', newExpiration.toString())
+      const jwtExpiration = decoded.exp * 1000
+      
+      // Don't extend beyond JWT expiration
+      const finalExpiration = Math.min(newExpiration, jwtExpiration)
+      localStorage.setItem('tokenExpiration', finalExpiration.toString())
+      
+      console.log('✅ Session extended to:', new Date(finalExpiration).toLocaleString())
       return true
     }
   }
@@ -512,14 +518,28 @@ export const isTokenExpired = (): boolean => {
     if (!token) return true
     
     // Check JWT token expiry first (more accurate)
-    if (isJWTTokenExpired(token)) {
-      return true
+    const decoded = decodeJWTToken(token)
+    if (decoded?.exp) {
+      const jwtExpired = decoded.exp * 1000 < Date.now()
+      if (jwtExpired) {
+        console.log('⏰ JWT token expired at:', new Date(decoded.exp * 1000).toLocaleString())
+        return true
+      }
     }
     
     // Then check localStorage expiration as backup
     const expiration = localStorage.getItem('tokenExpiration')
-    if (!expiration) return true
-    return Date.now() > parseInt(expiration)
+    if (!expiration) {
+      console.log('⚠️ No expiration time found in localStorage')
+      return true
+    }
+    
+    const localExpired = Date.now() > parseInt(expiration)
+    if (localExpired) {
+      console.log('⏰ localStorage expiration passed at:', new Date(parseInt(expiration)).toLocaleString())
+    }
+    
+    return localExpired
   }
   return true
 }
@@ -548,43 +568,29 @@ export const removeAuthToken = () => {
 
 // Helper function to automatically refresh token if needed
 export const ensureValidToken = async (): Promise<string | null> => {
-  console.log('🔍 Ensure Valid Token - Starting validation...')
   
   const token = getAuthToken()
   
-  console.log('🔍 Ensure Valid Token - Current token info:', {
-    hasToken: !!token,
-    tokenPreview: token ? `${token.substring(0, 20)}...` : null,
-    isExpired: isTokenExpired()
-  })
+  
   
   // If we have a valid token, return it
   if (token && !isTokenExpired()) {
-    console.log('✅ Ensure Valid Token - Current token is valid')
     return token
   }
   
-  console.log('🔄 Ensure Valid Token - Token expired or missing, attempting refresh...')
   
   // If token is expired or doesn't exist, try to refresh it
   try {
     const refreshResponse = await refreshAccessToken()
-    console.log('🔄 Ensure Valid Token - Refresh response:', {
-      success: refreshResponse.success,
-      message: refreshResponse.message,
-      hasNewToken: !!refreshResponse.data?.accessToken
-    })
+
     
     if (refreshResponse.success && refreshResponse.data?.accessToken) {
-      console.log('✅ Ensure Valid Token - Successfully refreshed token')
       return refreshResponse.data.accessToken
     }
   } catch (error) {
-    console.error('❌ Ensure Valid Token - Failed to refresh token:', error)
   }
   
   // If refresh failed, remove all tokens and return null
-  console.log('❌ Ensure Valid Token - Refresh failed, clearing tokens')
   removeAuthToken()
   return null
 }
@@ -645,12 +651,11 @@ export const handleGoogleAuthSuccess = (accessToken: string): boolean => {
       return false
     }
 
-    console.log('✅ Google Auth - Processing success with token')
     
-    // Store the access token with default 1 hour expiration
-    storeAuthToken(accessToken, 1)
+    // Store the access token using JWT's own expiration
+    storeAuthToken(accessToken)
+    console.log('🔐 Google Auth - using JWT expiration')
     
-    console.log('✅ Google Auth - Token stored successfully')
     return true
   } catch (error) {
     console.error('❌ Google Auth - Error handling success:', error)

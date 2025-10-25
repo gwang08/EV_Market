@@ -327,11 +327,11 @@
       },
       "placeholders": {
         "listingTitle": "e.g., 2020 Tesla Model 3 Long Range",
-        "price": "25000",
+        "price": "25,000,000",
         "brand": "e.g., CATL, BYD, LG",
         "model": "Model 3",
         "year": "2020",
-        "mileage": "45000",
+        "mileage": "45,000",
         "batteryHealth": "85",
         "range": "310",
         "weight": "528",
