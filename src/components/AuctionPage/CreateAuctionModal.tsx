@@ -34,7 +34,6 @@ export default function CreateAuctionModal({
   // Common fields
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const priceInput = useCurrencyInput("");
   const [brand, setBrand] = useState("");
   const [year, setYear] = useState("");
   const startingPriceInput = useCurrencyInput("");
@@ -80,7 +79,7 @@ export default function CreateAuctionModal({
     if (currentStep !== 3) return;
 
     // Validate step 1 fields
-    if (!title || !description || !priceInput.rawValue || !brand || !year) {
+    if (!title || !description || !brand || !year) {
       showError(t("seller.addListing.fillRequired", "Please fill all required fields"));
       return;
     }
@@ -114,7 +113,6 @@ export default function CreateAuctionModal({
 
       formData.append("title", title);
       formData.append("description", description);
-      formData.append("price", priceInput.rawValue);
       formData.append("brand", brand);
       formData.append("year", year);
       formData.append("startingPrice", startingPriceInput.rawValue);
@@ -165,7 +163,6 @@ export default function CreateAuctionModal({
     setImagePreviews([]);
     setTitle("");
     setDescription("");
-    priceInput.reset();
     setBrand("");
     setYear("");
     setModel("");
@@ -179,7 +176,7 @@ export default function CreateAuctionModal({
     onClose();
   };
 
-  const canProceedToStep2 = title && brand && priceInput.rawValue && year && (auctionType === "vehicles" ? model && mileageInput.rawValue : capacity && health);
+  const canProceedToStep2 = title && description && brand && year && (auctionType === "vehicles" ? model && mileageInput.rawValue : capacity && health);
   const canProceedToStep3 = images.length > 0;
   const canSubmit = startingPriceInput.rawValue && bidIncrementInput.rawValue;
 
