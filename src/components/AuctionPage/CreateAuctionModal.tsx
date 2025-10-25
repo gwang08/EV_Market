@@ -4,6 +4,7 @@ import { X, Upload, Car, Battery, Loader2, Trash2, CheckCircle2, ArrowRight, Arr
 import { createAuction } from "@/services";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { useToast } from "@/hooks/useToast";
+import { useCurrencyInput } from "@/hooks/useCurrencyInput";
 import { ToastContainer } from "@/components/common/Toast";
 import colors from "@/Utils/Color";
 
@@ -33,16 +34,16 @@ export default function CreateAuctionModal({
   // Common fields
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const priceInput = useCurrencyInput("");
   const [brand, setBrand] = useState("");
   const [year, setYear] = useState("");
-  const [startingPrice, setStartingPrice] = useState("");
-  const [bidIncrement, setBidIncrement] = useState("");
-  const [depositAmount, setDepositAmount] = useState("");
+  const startingPriceInput = useCurrencyInput("");
+  const bidIncrementInput = useCurrencyInput("");
+  const depositAmountInput = useCurrencyInput("");
 
   // Vehicle specific
   const [model, setModel] = useState("");
-  const [mileage, setMileage] = useState("");
+  const mileageInput = useCurrencyInput("");
 
   // Battery specific
   const [capacity, setCapacity] = useState("");
@@ -75,13 +76,35 @@ export default function CreateAuctionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !description || !price || !brand || !year || !startingPrice || !bidIncrement) {
+    // Only submit when on step 3
+    if (currentStep !== 3) return;
+
+    // Validate step 1 fields
+    if (!title || !description || !priceInput.rawValue || !brand || !year) {
       showError(t("seller.addListing.fillRequired", "Please fill all required fields"));
       return;
     }
 
+    // Validate type-specific fields
+    if (auctionType === "vehicles" && (!model || !mileageInput.rawValue)) {
+      showError(t("seller.addListing.fillRequired", "Please fill all required fields"));
+      return;
+    }
+
+    if (auctionType === "batteries" && (!capacity || !health)) {
+      showError(t("seller.addListing.fillRequired", "Please fill all required fields"));
+      return;
+    }
+
+    // Validate step 2 - images
     if (images.length === 0) {
       showError(t("seller.addListing.uploadImage", "Please upload at least one image"));
+      return;
+    }
+
+    // Validate step 3 - auction settings
+    if (!startingPriceInput.rawValue || !bidIncrementInput.rawValue) {
+      showError(t("seller.addListing.fillRequired", "Please fill all required fields"));
       return;
     }
 
@@ -91,12 +114,12 @@ export default function CreateAuctionModal({
 
       formData.append("title", title);
       formData.append("description", description);
-      formData.append("price", price);
+      formData.append("price", priceInput.rawValue);
       formData.append("brand", brand);
       formData.append("year", year);
-      formData.append("startingPrice", startingPrice);
-      formData.append("bidIncrement", bidIncrement);
-      if (depositAmount) formData.append("depositAmount", depositAmount);
+      formData.append("startingPrice", startingPriceInput.rawValue);
+      formData.append("bidIncrement", bidIncrementInput.rawValue);
+      if (depositAmountInput.rawValue) formData.append("depositAmount", depositAmountInput.rawValue);
 
       images.forEach((image) => {
         formData.append("images", image);
@@ -104,7 +127,7 @@ export default function CreateAuctionModal({
 
       if (auctionType === "vehicles") {
         formData.append("model", model);
-        formData.append("mileage", mileage);
+        formData.append("mileage", mileageInput.rawValue);
 
         const specs = {
           warranty: { basic: "Standard warranty", battery: "8 years / 120,000 miles", drivetrain: "8 years / 120,000 miles" },
@@ -142,22 +165,23 @@ export default function CreateAuctionModal({
     setImagePreviews([]);
     setTitle("");
     setDescription("");
-    setPrice("");
+    priceInput.reset();
     setBrand("");
     setYear("");
     setModel("");
-    setMileage("");
+    mileageInput.reset();
     setCapacity("");
     setHealth("");
-    setStartingPrice("");
-    setBidIncrement("");
-    setDepositAmount("");
+    startingPriceInput.reset();
+    bidIncrementInput.reset();
+    depositAmountInput.reset();
     setCurrentStep(1);
     onClose();
   };
 
-  const canProceedToStep2 = title && brand && price && year && (auctionType === "vehicles" ? model && mileage : capacity && health);
+  const canProceedToStep2 = title && brand && priceInput.rawValue && year && (auctionType === "vehicles" ? model && mileageInput.rawValue : capacity && health);
   const canProceedToStep3 = images.length > 0;
+  const canSubmit = startingPriceInput.rawValue && bidIncrementInput.rawValue;
 
   if (!isOpen) return null;
 
@@ -256,18 +280,7 @@ export default function CreateAuctionModal({
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium mb-1.5" style={{ color: colors.Text }}>
-                      {t("seller.addListing.fields.price")} (VND) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="1000000"
-                    />
-                  </div>
+    
 
                   <div>
                     <label className="block text-xs font-medium mb-1.5" style={{ color: colors.Text }}>
@@ -301,11 +314,11 @@ export default function CreateAuctionModal({
                           {t("seller.addListing.fields.mileage")} (km) <span className="text-red-500">*</span>
                         </label>
                         <input
-                          type="number"
-                          value={mileage}
-                          onChange={(e) => setMileage(e.target.value)}
+                          type="text"
+                          value={mileageInput.displayValue}
+                          onChange={(e) => mileageInput.handleChange(e.target.value)}
                           className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                          placeholder="25000"
+                          placeholder="25,000"
                         />
                       </div>
                     </>
@@ -408,11 +421,11 @@ export default function CreateAuctionModal({
                       {t("auctions.startingPrice")} <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      value={startingPrice}
-                      onChange={(e) => setStartingPrice(e.target.value)}
+                      type="text"
+                      value={startingPriceInput.displayValue}
+                      onChange={(e) => startingPriceInput.handleChange(e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="5000000"
+                      placeholder="5,000,000"
                     />
                   </div>
 
@@ -421,11 +434,11 @@ export default function CreateAuctionModal({
                       {t("auctions.bidIncrement")} <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      value={bidIncrement}
-                      onChange={(e) => setBidIncrement(e.target.value)}
+                      type="text"
+                      value={bidIncrementInput.displayValue}
+                      onChange={(e) => bidIncrementInput.handleChange(e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="100000"
+                      placeholder="100,000"
                     />
                   </div>
 
@@ -434,11 +447,11 @@ export default function CreateAuctionModal({
                       {t("auctions.depositAmount")} ({t("common.optional", "Optional")})
                     </label>
                     <input
-                      type="number"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
+                      type="text"
+                      value={depositAmountInput.displayValue}
+                      onChange={(e) => depositAmountInput.handleChange(e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="300000"
+                      placeholder="300,000"
                     />
                   </div>
                 </div>
@@ -475,7 +488,7 @@ export default function CreateAuctionModal({
               ) : (
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !canSubmit}
                   className="flex items-center gap-1.5 px-5 py-2 text-sm bg-green-600 text-white rounded-lg font-medium transition-all hover:bg-green-700 disabled:opacity-50"
                 >
                   {isSubmitting ? (

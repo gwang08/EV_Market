@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useI18nContext } from "../../providers/I18nProvider";
+import { useCurrencyInput } from "../../hooks/useCurrencyInput";
 import Image from "next/image";
 import {
   getMyVehicles,
@@ -57,9 +58,7 @@ function MyListings() {
   // Form data state
   const [formData, setFormData] = useState({
     title: "",
-    price: "",
     year: "",
-    mileage: "",
     description: "",
     brand: "",
     model: "",
@@ -67,6 +66,10 @@ function MyListings() {
     capacity: "",
     health: "",
   });
+
+  // Currency inputs using useCurrencyInput hook
+  const priceInput = useCurrencyInput("");
+  const mileageInput = useCurrencyInput("");
 
   const setApiErrors = (errors: Record<string, string>) => {
     const validationErrors = Object.entries(errors).map(([field, message]) => ({
@@ -101,54 +104,6 @@ function MyListings() {
       [field]: value,
     }));
   }, []);
-
-  // Handle number input - only allow numbers for specific fields
-  const handleNumberInput = useCallback(
-    (field: string, e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      // Check if field should only accept numbers
-      const numberFields = ["price", "year", "mileage", "capacity", "health"];
-
-      if (numberFields.includes(field)) {
-        // Allow empty string, numbers, and decimal point
-        if (value === "" || /^\d*\.?\d*$/.test(value)) {
-          handleInputChange(field, value);
-        }
-      } else {
-        handleInputChange(field, value);
-      }
-    },
-    [handleInputChange]
-  );
-
-  // Handle key press for number fields - prevent non-numeric characters
-  const handleNumberKeyPress = useCallback(
-    (field: string, e: React.KeyboardEvent<HTMLInputElement>) => {
-      const numberFields = ["price", "year", "mileage", "capacity", "health"];
-
-      if (numberFields.includes(field)) {
-        // Allow: backspace, delete, tab, escape, enter, decimal point
-        if (
-          [8, 9, 27, 13, 46, 110, 190].indexOf(e.keyCode) !== -1 ||
-          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-          (e.keyCode === 65 && e.ctrlKey === true) ||
-          (e.keyCode === 67 && e.ctrlKey === true) ||
-          (e.keyCode === 86 && e.ctrlKey === true) ||
-          (e.keyCode === 88 && e.ctrlKey === true)
-        ) {
-          return;
-        }
-        // Ensure that it is a number and stop the keypress
-        if (
-          (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
-          (e.keyCode < 96 || e.keyCode > 105)
-        ) {
-          e.preventDefault();
-        }
-      }
-    },
-    []
-  );
 
   // Handle validation on blur (when user leaves the field)
   const handleInputBlur = useCallback(
@@ -280,35 +235,33 @@ function MyListings() {
 
     if (item.type === "vehicle") {
       const v = vehicles.find((v) => v.id === item.id);
-      const formData = {
+      setFormData({
         title: v?.title || "",
-        price: String(v?.price ?? ""),
         year: String(v?.year ?? ""),
-        mileage: String(v?.mileage ?? ""),
         description: v?.description || "",
         brand: v?.brand || "",
         model: v?.model || "",
         status: v?.status || "AVAILABLE",
         capacity: "",
         health: "",
-      };
-      setFormData(formData);
+      });
+      priceInput.setValue(String(v?.price ?? ""));
+      mileageInput.setValue(String(v?.mileage ?? ""));
       setEditImages(v?.images || []);
     } else {
       const b = batteries.find((b) => b.id === item.id);
-      const formData = {
+      setFormData({
         title: b?.title || "",
-        price: String(b?.price ?? ""),
         year: String(b?.year ?? ""),
-        mileage: "",
         description: b?.description || "",
         brand: b?.brand || "",
         model: "",
         status: "AVAILABLE",
         capacity: String(b?.capacity ?? ""),
         health: String(b?.health ?? ""),
-      };
-      setFormData(formData);
+      });
+      priceInput.setValue(String(b?.price ?? ""));
+      mileageInput.setValue(""); // Battery doesn't have mileage
       setEditImages(b?.images || []);
     }
 
@@ -367,17 +320,17 @@ function MyListings() {
         validationData = {
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: priceInput.rawValue,
           make: formData.brand, // Map brand to make for validation
           model: formData.model,
           year: formData.year,
-          mileage: formData.mileage,
+          mileage: mileageInput.rawValue,
         };
       } else {
         validationData = {
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: priceInput.rawValue,
           year: formData.year,
           batteryCapacity: formData.capacity, // Map capacity to batteryCapacity for validation
           batteryHealth: formData.health,
@@ -404,9 +357,9 @@ function MyListings() {
       if (editType === "vehicle") {
         const payload = {
           title: formData.title,
-          price: Number(formData.price) || undefined,
+          price: Number(priceInput.rawValue) || undefined,
           year: Number(formData.year) || undefined,
-          mileage: Number(formData.mileage) || undefined,
+          mileage: Number(mileageInput.rawValue) || undefined,
           description: formData.description,
           brand: formData.brand,
           model: formData.model,
@@ -417,7 +370,7 @@ function MyListings() {
       } else {
         const payload = {
           title: formData.title,
-          price: Number(formData.price) || undefined,
+          price: Number(priceInput.rawValue) || undefined,
           year: Number(formData.year) || undefined,
           capacity: Number(formData.capacity) || undefined,
           health: Number(formData.health) || undefined,
@@ -888,11 +841,10 @@ function MyListings() {
                     <span className="text-red-600 font-bold">*</span>
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     className={getInputClass("price")}
-                    value={formData.price}
-                    onChange={(e) => handleNumberInput("price", e)}
-                    onKeyDown={(e) => handleNumberKeyPress("price", e)}
+                    value={priceInput.displayValue}
+                    onChange={(e) => priceInput.handleChange(e.target.value)}
                     onBlur={() => handleInputBlur("price")}
                     placeholder={t("seller.listings.form.pricePlaceholder")}
                   />
@@ -907,8 +859,7 @@ function MyListings() {
                     type="number"
                     className={getInputClass("year")}
                     value={formData.year}
-                    onChange={(e) => handleNumberInput("year", e)}
-                    onKeyDown={(e) => handleNumberKeyPress("year", e)}
+                    onChange={(e) => handleInputChange("year", e.target.value)}
                     onBlur={() => handleInputBlur("year")}
                     placeholder={t("seller.listings.form.yearPlaceholder")}
                   />
@@ -922,11 +873,10 @@ function MyListings() {
                         <span className="text-red-600 font-bold">*</span>
                       </label>
                       <input
-                        type="number"
+                        type="text"
                         className={getInputClass("mileage")}
-                        value={formData.mileage || ""}
-                        onChange={(e) => handleNumberInput("mileage", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("mileage", e)}
+                        value={mileageInput.displayValue}
+                        onChange={(e) => mileageInput.handleChange(e.target.value)}
                         onBlur={() => handleInputBlur("mileage")}
                         placeholder={t(
                           "seller.listings.form.mileagePlaceholder"
@@ -978,8 +928,7 @@ function MyListings() {
                         type="number"
                         className={getInputClass("capacity")}
                         value={formData.capacity || ""}
-                        onChange={(e) => handleNumberInput("capacity", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("capacity", e)}
+                        onChange={(e) => handleInputChange("capacity", e.target.value)}
                         onBlur={() => handleInputBlur("capacity")}
                         placeholder={t(
                           "seller.listings.form.capacityPlaceholder"
@@ -996,8 +945,7 @@ function MyListings() {
                         type="number"
                         className={getInputClass("health")}
                         value={formData.health || ""}
-                        onChange={(e) => handleNumberInput("health", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("health", e)}
+                        onChange={(e) => handleInputChange("health", e.target.value)}
                         onBlur={() => handleInputBlur("health")}
                         placeholder={t(
                           "seller.listings.form.healthPlaceholder"

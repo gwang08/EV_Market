@@ -141,8 +141,8 @@ function BrowsePageContent() {
 
     // Price range filter
     const price = parseFloat(product.price.replace(/[$,]/g, ""));
-    if (filters.minPrice && price < parseFloat(filters.minPrice)) return false;
-    if (filters.maxPrice && price > parseFloat(filters.maxPrice)) return false;
+    if (filters.minPrice && price < parseFloat(filters.minPrice.replace(/,/g, ""))) return false;
+    if (filters.maxPrice && price > parseFloat(filters.maxPrice.replace(/,/g, ""))) return false;
 
     // Brand filter
     if (filters.brands.length > 0 && !filters.brands.includes(product.brand))

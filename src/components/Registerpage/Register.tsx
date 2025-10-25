@@ -48,7 +48,6 @@ function Register() {
 
   const handleGoogleLoginClick = () => {
     // TODO: Implement Google login later
-    console.log("Google login will be implemented later");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +69,9 @@ function Register() {
       if (response.success) {
         const accessToken = response.data?.accessToken;
         if (accessToken) {
-          storeAuthToken(accessToken, 24);
+          // Use JWT's own expiration time for new registrations
+          storeAuthToken(accessToken);
+          console.log('🔐 Registration - using JWT expiration');
           toast.success(
             t(
               "auth.register.registerSuccess",

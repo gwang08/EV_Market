@@ -9,6 +9,7 @@ import {
 } from "../../Utils/validation";
 import { useI18nContext } from "../../providers/I18nProvider";
 import { useToast } from "../../hooks/useToast";
+import { useCurrencyInput } from "../../hooks/useCurrencyInput";
 import { ToastContainer } from "../common/Toast";
 import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
@@ -56,6 +57,7 @@ interface InputProps {
   errors: ValidationError[];
   handleChange: (field: keyof FormData, value: string) => void;
   handleBlur: (field: keyof FormData) => void;
+  currencyInput?: ReturnType<typeof useCurrencyInput>; // Add currency input hook
 }
 
 interface SelectProps {
@@ -80,22 +82,17 @@ const Input = ({
   errors,
   handleChange,
   handleBlur,
+  currencyInput,
 }: InputProps) => {
   const { t } = useI18nContext();
   const errorMessage = getFieldError(errors, field);
   const translatedError = errorMessage ? t(errorMessage, errorMessage) : null;
 
-  // Handle input for number fields - only allow numbers
-  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (type === "number") {
-      const value = e.target.value;
-      if (value === "" || /^\d*\.?\d*$/.test(value)) {
-        handleChange(field, value);
-      }
-    } else {
-      handleChange(field, e.target.value);
-    }
-  };
+  // If currency input hook is provided, use it
+  const value = currencyInput ? currencyInput.displayValue : form[field];
+  const onChange = currencyInput 
+    ? (e: React.ChangeEvent<HTMLInputElement>) => currencyInput.handleChange(e.target.value)
+    : (e: React.ChangeEvent<HTMLInputElement>) => handleChange(field, e.target.value);
 
   return (
     <div className="mb-6">
@@ -104,9 +101,9 @@ const Input = ({
       </label>
       <div className="relative">
         <input
-          type={type}
-          value={form[field]}
-          onChange={handleNumberInput}
+          type={currencyInput ? "text" : type}
+          value={value}
+          onChange={onChange}
           onBlur={() => handleBlur(field)}
           placeholder={placeholder}
           className={`w-full px-5 py-3 rounded-xl border-2 text-base font-medium transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 placeholder-gray-400
@@ -199,20 +196,25 @@ function AddListing() {
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
+  // Currency input hooks for formatted fields
+  const priceInput = useCurrencyInput("");
+  const mileageInput = useCurrencyInput("");
+  const batteryCapacityInput = useCurrencyInput("");
+
   const [form, setForm] = useState<FormData>({
     title: "",
     make: "",
     model: "",
     year: "",
-    price: "",
-    mileage: "",
+    price: "", // Will be managed by priceInput hook
+    mileage: "", // Will be managed by mileageInput hook
     location: "",
     bodyType: "",
     exteriorColor: "",
     interiorColor: "",
     batteryHealth: "",
     range: "",
-    batteryCapacity: "",
+    batteryCapacity: "", // Will be managed by batteryCapacityInput hook
     description: "",
     spec_weight: "",
     spec_voltage: "",
@@ -232,7 +234,12 @@ function AddListing() {
   // Handle validation on blur (when user leaves the field)
   const handleBlur = useCallback(
     (field: keyof FormData) => {
-      const value = form[field];
+      // Get value from currency hooks or form
+      let value = form[field];
+      if (field === "price") value = priceInput.rawValue;
+      if (field === "mileage") value = mileageInput.rawValue;
+      if (field === "batteryCapacity") value = batteryCapacityInput.rawValue;
+
       const error = validateField(field, value, listingType);
 
       if (error) {
@@ -244,7 +251,7 @@ function AddListing() {
         setErrors((prev) => prev.filter((e) => e.field !== field));
       }
     },
-    [form, listingType]
+    [form, listingType, priceInput.rawValue, mileageInput.rawValue, batteryCapacityInput.rawValue]
   );
 
   const handleImageUpload = (files: FileList | null) => {
@@ -291,11 +298,11 @@ function AddListing() {
         const vehiclePayload: any = {
           title: form.title,
           description: form.description,
-          price: Number(form.price),
+          price: Number(priceInput.rawValue),
           brand: form.make,
           model: form.model,
           year: Number(form.year),
-          mileage: Number(form.mileage),
+          mileage: Number(mileageInput.rawValue),
           images: uploadedImages,
           specifications: {
             batteryAndCharging: {
@@ -326,9 +333,9 @@ function AddListing() {
         const batteryPayload: any = {
           title: form.title,
           description: form.description,
-          price: Number(form.price),
+          price: Number(priceInput.rawValue),
           brand: form.make,
-          capacity: Number(form.batteryCapacity),
+          capacity: Number(batteryCapacityInput.rawValue),
           year: Number(form.year),
           health: Number(form.batteryHealth),
           images: uploadedImages,
@@ -347,7 +354,6 @@ function AddListing() {
         result = await createBattery(batteryPayload);
       }
 
-      console.log("API result:", result);
 
       if (!result.success) {
         showError(
@@ -391,6 +397,9 @@ function AddListing() {
         spec_warrantyPeriod: "",
         spec_temperatureRange: "",
       });
+      priceInput.reset();
+      mileageInput.reset();
+      batteryCapacityInput.reset();
       setUploadedImages([]);
       setImagePreviews([]);
       setCurrentStep(1);
@@ -443,12 +452,12 @@ function AddListing() {
               field="price"
               label={t("seller.addListing.fields.price")}
               placeholder={t("seller.addListing.placeholders.price")}
-              type="number"
               required
               form={form}
               errors={errors}
               handleChange={handleChange}
               handleBlur={handleBlur}
+              currencyInput={priceInput}
             />
             {listingType === "vehicle" ? (
               <Select
@@ -526,12 +535,12 @@ function AddListing() {
                 field="mileage"
                 label={t("seller.addListing.fields.mileage")}
                 placeholder={t("seller.addListing.placeholders.mileage")}
-                type="number"
                 required
                 form={form}
                 errors={errors}
                 handleChange={handleChange}
                 handleBlur={handleBlur}
+                currencyInput={mileageInput}
               />
             )}
           </div>
@@ -592,12 +601,12 @@ function AddListing() {
               field="batteryCapacity"
               label={t("seller.addListing.fields.batteryCapacity")}
               placeholder="75"
-              type="number"
               required
               form={form}
               errors={errors}
               handleChange={handleChange}
               handleBlur={handleBlur}
+              currencyInput={batteryCapacityInput}
             />
             <Input
               field="batteryHealth"
@@ -1225,6 +1234,9 @@ function AddListing() {
                 spec_warrantyPeriod: "",
                 spec_temperatureRange: "",
               });
+              priceInput.reset();
+              mileageInput.reset();
+              batteryCapacityInput.reset();
               setUploadedImages([]);
               setImagePreviews([]);
               setCurrentStep(1);
@@ -1268,6 +1280,9 @@ function AddListing() {
                 spec_warrantyPeriod: "",
                 spec_temperatureRange: "",
               });
+              priceInput.reset();
+              mileageInput.reset();
+              batteryCapacityInput.reset();
               setUploadedImages([]);
               setImagePreviews([]);
               setCurrentStep(1);
