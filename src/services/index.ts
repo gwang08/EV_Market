@@ -96,7 +96,8 @@ export {
   payDeposit,
   formatAuctionPrice,
   getTimeRemaining,
-  requestAuction
+  requestAuction,
+  createAuction
 } from './Auction'
 
 // Export Admin services
@@ -179,5 +180,6 @@ export type {
 
 export type {
   RequestAuctionData,
-  RequestAuctionResponse
+  RequestAuctionResponse,
+  CreateAuctionResponse
 } from './Auction'

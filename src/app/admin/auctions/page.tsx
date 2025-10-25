@@ -44,9 +44,20 @@ function AuctionManagementPage() {
     }
   };
 
-  const handleApprove = async (id: string, listingType: "VEHICLE" | "BATTERY") => {
+  const handleApprove = async (
+    id: string,
+    listingType: "VEHICLE" | "BATTERY",
+    startTime: string,
+    endTime: string
+  ) => {
     try {
-      const response = await reviewAuctionRequest(listingType, id, true);
+      const response = await reviewAuctionRequest(
+        listingType,
+        id,
+        true,
+        startTime,
+        endTime
+      );
       if (response.success) {
         success("Đã phê duyệt yêu cầu đấu giá thành công!");
         loadRequests();
@@ -65,7 +76,14 @@ function AuctionManagementPage() {
     reason: string
   ) => {
     try {
-      const response = await reviewAuctionRequest(listingType, id, false, reason);
+      const response = await reviewAuctionRequest(
+        listingType,
+        id,
+        false,
+        undefined,
+        undefined,
+        reason
+      );
       if (response.success) {
         success("Đã từ chối yêu cầu đấu giá");
         loadRequests();

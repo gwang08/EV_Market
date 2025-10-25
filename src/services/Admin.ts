@@ -1,6 +1,6 @@
 import { ensureValidToken } from "./Auth";
 
-const API_BASE_URL = "https://evmarket-api-staging.onrender.com/api/v1";
+const API_BASE_URL = "https://beevmarket-production.up.railway.app/api/v1";
 
 // Get pending auction requests
 export const getAuctionRequests = async (page = 1, limit = 10) => {
@@ -38,15 +38,33 @@ export const getAuctionRequests = async (page = 1, limit = 10) => {
   }
 };
 
-// Approve or reject auction request
+// Approve or reject auction request with time settings
 export const reviewAuctionRequest = async (
   listingType: "VEHICLE" | "BATTERY",
   listingId: string,
   approved: boolean,
+  auctionStartsAt?: string,
+  auctionEndsAt?: string,
   rejectionReason?: string
 ) => {
   try {
     const token = await ensureValidToken();
+    
+    const body: any = {
+      approved,
+    };
+
+    // Add time fields if approving
+    if (approved && auctionStartsAt && auctionEndsAt) {
+      body.auctionStartsAt = auctionStartsAt;
+      body.auctionEndsAt = auctionEndsAt;
+    }
+
+    // Add rejection reason if rejecting
+    if (!approved && rejectionReason) {
+      body.rejectionReason = rejectionReason;
+    }
+
     const response = await fetch(
       `${API_BASE_URL}/admin/listings/${listingType}/${listingId}/review-auction`,
       {
@@ -55,10 +73,7 @@ export const reviewAuctionRequest = async (
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          approved,
-          ...(rejectionReason && { rejectionReason }),
-        }),
+        body: JSON.stringify(body),
       }
     );
 
