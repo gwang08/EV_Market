@@ -27,12 +27,65 @@ import {
   getAuctionDetail,
 } from "@/services";
 import { useI18nContext } from "@/providers/I18nProvider";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/providers/ToastProvider";
 import { useCurrencyInput } from "@/hooks/useCurrencyInput";
+import { supabase } from "@/lib/supabase";
 
 interface AuctionDetailPageProps {
   auctionId: string;
 }
+
+// Helper function to map server errors to localized messages
+const getLocalizedErrorMessage = (serverMessage: string, t: any, context: 'deposit' | 'bid'): string => {
+  const lowerMessage = serverMessage.toLowerCase();
+  
+  // Insufficient balance
+  if (lowerMessage.includes('insufficient') || lowerMessage.includes('not enough') || lowerMessage.includes('balance')) {
+    return t("auctions.errors.insufficientBalance", "Số dư không đủ để thực hiện giao dịch");
+  }
+  
+  // Deposit errors
+  if (context === 'deposit') {
+    if (lowerMessage.includes('already') && lowerMessage.includes('deposit')) {
+      return t("auctions.errors.alreadyDeposited", "Bạn đã đặt cọc cho phiên đấu giá này");
+    }
+    if (lowerMessage.includes('auction') && (lowerMessage.includes('ended') || lowerMessage.includes('expired'))) {
+      return t("auctions.errors.auctionAlreadyEnded", "Phiên đấu giá đã kết thúc");
+    }
+    if (lowerMessage.includes('not') && lowerMessage.includes('start')) {
+      return t("auctions.errors.auctionNotStarted", "Phiên đấu giá chưa bắt đầu");
+    }
+  }
+  
+  // Bid errors
+  if (context === 'bid') {
+    if (lowerMessage.includes('must pay') || (lowerMessage.includes('deposit') && lowerMessage.includes('before'))) {
+      return t("auctions.errors.depositRequiredError", "Bạn phải đặt cọc trước khi đấu giá");
+    }
+    if (lowerMessage.includes('cannot bid') && lowerMessage.includes('own')) {
+      return t("auctions.errors.ownAuctionError", "Bạn không thể đấu giá sản phẩm của chính mình");
+    }
+    if (lowerMessage.includes('already') && lowerMessage.includes('highest')) {
+      return t("auctions.errors.alreadyHighestBidder", "Bạn đã là người đặt giá cao nhất");
+    }
+    if (lowerMessage.includes('must be at least') || lowerMessage.includes('minimum bid')) {
+      return t("auctions.errors.bidTooLow", "Giá đấu thấp hơn mức tối thiểu");
+    }
+  }
+  
+  // Network/Server errors
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('timeout')) {
+    return t("auctions.errors.networkError", "Lỗi kết nối. Vui lòng thử lại");
+  }
+  
+  if (lowerMessage.includes('unauthorized') || lowerMessage.includes('authentication')) {
+    return t("auctions.errors.unauthorized", "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại");
+  }
+  
+  // Default error
+  return t(context === 'deposit' ? "auctions.errors.depositFailed" : "auctions.errors.bidFailed", 
+    context === 'deposit' ? "Đặt cọc thất bại" : "Đấu giá thất bại");
+};
 
 export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps) {
   const { t } = useI18nContext();
@@ -49,6 +102,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   const [isPayingDeposit, setIsPayingDeposit] = useState(false);
   const [hasDeposit, setHasDeposit] = useState(false);
   const [currentBid, setCurrentBid] = useState(0);
+  const [isNewBidFlash, setIsNewBidFlash] = useState(false);
   
   const [activeTab, setActiveTab] = useState<"details" | "specs" | "bids">("details");
 
@@ -134,9 +188,77 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
     return () => clearInterval(timer);
   }, [auction]);
 
+  // Realtime bidding subscription
+  useEffect(() => {
+    if (!auction) return;
+
+    // Create a channel for this specific auction
+    const channel = supabase.channel(`auction-room-${auctionId}`);
+
+    channel
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Bid',
+          filter: auction.listingType === 'VEHICLE' 
+            ? `vehicleId=eq.${auctionId}` 
+            : `batteryId=eq.${auctionId}`
+        },
+        (payload) => {
+          console.log('New bid received:', payload.new);
+          
+          // Update current bid with the new bid amount
+          const newBid = payload.new as any;
+          if (newBid && typeof newBid.amount === 'number') {
+            const newBidAmount = newBid.amount;
+            setCurrentBid(newBidAmount);
+            
+            // Trigger flash animation
+            setIsNewBidFlash(true);
+            setTimeout(() => setIsNewBidFlash(false), 2000);
+            
+            // Update the bid input to next increment
+            if (auction.bidIncrement) {
+              bidAmountInput.setValue(String(newBidAmount + auction.bidIncrement));
+            }
+            
+            // Update auction bids array if exists
+            setAuction(prev => {
+              if (!prev) return prev;
+              
+              // Create a properly typed Bid object
+              const bidEntry: any = {
+                id: newBid.id || '',
+                amount: newBid.amount,
+                createdAt: newBid.createdAt || new Date().toISOString(),
+                bidderId: newBid.bidderId || '',
+                vehicleId: newBid.vehicleId || null,
+                batteryId: newBid.batteryId || null,
+                bidder: newBid.bidder
+              };
+              
+              return {
+                ...prev,
+                currentBid: newBidAmount,
+                bids: [...(prev.bids || []), bidEntry]
+              };
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: unsubscribe when component unmounts or auction changes
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [auction, auctionId, bidAmountInput]);
+
   const handlePayDeposit = async () => {
     if (!isAuthenticated()) {
-      showError(t("auctions.loginToDeposit"));
+      showError(t("auctions.errors.loginRequired", "Vui lòng đăng nhập để đặt cọc"));
       router.push("/login");
       return;
     }
@@ -145,30 +267,45 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
     try {
       setIsPayingDeposit(true);
-      await payDeposit(
+      const result = await payDeposit(
         auction.listingType,
         auction.id,
         { amount: auction.depositAmount }
       );
+      
+      console.log('✅ Deposit Success:', result);
+      
+      // If no error thrown, deposit was successful
       setHasDeposit(true);
-      showSuccess(t("auctions.depositSuccess"));
+      showSuccess(t("auctions.depositSuccess", "Đặt cọc thành công!"));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t("auctions.depositError");
-      const lowerError = errorMessage.toLowerCase();
+      console.error('❌ Deposit Error Details:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown',
+        type: typeof error,
+        errorObject: error
+      });
       
+      const errorMessage = error instanceof Error ? error.message : t("auctions.errors.depositFailed", "Đặt cọc thất bại");
+      console.log('📝 Error message extracted:', errorMessage);
       
-      // Check for insufficient balance error
-      if (lowerError.includes('insufficient') || 
-          lowerError.includes('not enough') ||
-          lowerError.includes('balance')) {
+      const localizedError = getLocalizedErrorMessage(errorMessage, t, 'deposit');
+      console.log('🌍 Localized error:', localizedError);
+      
+      // Check for insufficient balance to show wallet link
+      if (errorMessage.toLowerCase().includes('insufficient') || 
+          errorMessage.toLowerCase().includes('not enough') ||
+          errorMessage.toLowerCase().includes('balance')) {
+        console.log('💰 Showing insufficient balance error with wallet link');
         showError(
-          t("auctions.errors.insufficientBalance"),
+          localizedError,
           6000,
-          t("auctions.errors.goToWallet"),
+          t("auctions.errors.goToWallet", "Nạp tiền"),
           () => router.push('/wallet')
         );
       } else {
-        showError(errorMessage);
+        console.log('⚠️ Showing general error');
+        showError(localizedError);
       }
     } finally {
       setIsPayingDeposit(false);
@@ -177,13 +314,13 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
   const handlePlaceBid = async () => {
     if (!isAuthenticated()) {
-      showError(t("auctions.loginToBid"));
+      showError(t("auctions.errors.loginRequired", "Vui lòng đăng nhập để đấu giá"));
       router.push("/login");
       return;
     }
 
     if (!hasDeposit) {
-      showError(t("auctions.depositRequired"));
+      showError(t("auctions.errors.depositRequiredError", "Bạn phải đặt cọc trước khi đấu giá"));
       return;
     }
 
@@ -191,46 +328,35 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
     const bidValue = Number(bidAmountInput.rawValue);
     if (bidValue < currentBid + auction.bidIncrement) {
-      showError(`Minimum bid is ${formatAuctionPrice(currentBid + auction.bidIncrement)}`);
+      showError(t("auctions.errors.bidTooLow", "Giá đấu thấp hơn mức tối thiểu").replace('{amount}', formatAuctionPrice(currentBid + auction.bidIncrement)));
       return;
     }
 
     try {
       setIsPlacingBid(true);
       await placeBid(auction.listingType, auction.id, { amount: bidValue });
+      
+      // If no error thrown, bid was successful
       setCurrentBid(bidValue);
       bidAmountInput.setValue(String(bidValue + auction.bidIncrement));
-      showSuccess(t("auctions.bidPlaced"));
+      showSuccess(t("auctions.bidPlaced", "Đặt giá thành công!"));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t("auctions.bidError");
-  
+      console.error('❌ Bid Error:', error);
+      const errorMessage = error instanceof Error ? error.message : t("auctions.errors.bidFailed", "Đấu giá thất bại");
+      const localizedError = getLocalizedErrorMessage(errorMessage, t, 'bid');
       
-      // Handle specific error cases (case-insensitive matching)
-      const lowerError = errorMessage.toLowerCase();
-      
-      if (lowerError.includes('must pay') || lowerError.includes('deposit') && lowerError.includes('before')) {
-        showError(t("auctions.errors.depositRequiredError"));
-      } else if (lowerError.includes('insufficient') || lowerError.includes('not enough') || lowerError.includes('balance')) {
+      // Check for insufficient balance to show wallet link
+      if (errorMessage.toLowerCase().includes('insufficient') || 
+          errorMessage.toLowerCase().includes('not enough') || 
+          errorMessage.toLowerCase().includes('balance')) {
         showError(
-          t("auctions.errors.insufficientBalance"),
+          localizedError,
           6000,
-          t("auctions.errors.goToWallet"),
+          t("auctions.errors.goToWallet", "Nạp tiền"),
           () => router.push('/wallet')
         );
-      } else if (lowerError.includes('cannot bid') && lowerError.includes('own')) {
-        showError(t("auctions.errors.ownAuctionError"));
-      } else if (lowerError.includes('already') && lowerError.includes('highest')) {
-        showError(t("auctions.errors.alreadyHighestBidder"));
-      } else if (lowerError.includes('not started') || lowerError.includes('not yet')) {
-        showError(t("auctions.errors.auctionNotStarted"));
-      } else if (lowerError.includes('ended') || lowerError.includes('already ended')) {
-        showError(t("auctions.errors.auctionAlreadyEnded"));
-      } else if (lowerError.includes('must be at least') || lowerError.includes('minimum bid')) {
-        const match = errorMessage.match(/\d+/);
-        const amount = match ? formatAuctionPrice(parseInt(match[0])) : '';
-        showError(t("auctions.errors.bidTooLow").replace('{amount}', amount));
       } else {
-        showError(errorMessage);
+        showError(localizedError);
       }
     } finally {
       setIsPlacingBid(false);
@@ -383,12 +509,23 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
                 {activeTab === "specs" && auction.specifications && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(auction.specifications).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                        <span className="text-sm text-slate-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                        <span className="text-sm font-semibold text-slate-900">{value}</span>
-                      </div>
-                    ))}
+                    {Object.entries(auction.specifications).map(([key, value]) => {
+                      // Handle nested objects (like warranty, dimensions, etc.)
+                      const displayValue = typeof value === 'object' && value !== null
+                        ? Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(', ')
+                        : String(value);
+                      
+                      return (
+                        <div key={key} className="flex items-start justify-between p-4 bg-slate-50 rounded-xl">
+                          <span className="text-sm text-slate-600 capitalize font-medium">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <span className="text-sm text-slate-900 text-right max-w-[60%]">
+                            {displayValue}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -397,7 +534,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                     {auction.bids && auction.bids.length > 0 ? (
                       <>
                         <p className="text-sm text-slate-500 mb-4">
-                          {auction.bids.length} {auction.bids.length === 1 ? 'bid' : 'bids'} placed
+                          {auction.bids.length} {t(auction.bids.length === 1 ? "auctions.bidPlacedSingular" : "auctions.bidsPlaced", auction.bids.length === 1 ? "bid placed" : "bids placed")}
                         </p>
                         {auction.bids
                           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -415,8 +552,8 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-slate-900">
-                                    {bid.bidder?.name || `Bidder ${bid.bidderId.slice(0, 8)}...`}
-                                    {idx === 0 && <span className="ml-2 text-green-600 font-bold">• Highest Bid</span>}
+                                    {bid.bidder?.name || `${t("auctions.bidder", "Bidder")} ${bid.bidderId.slice(0, 8)}...`}
+                                    {idx === 0 && <span className="ml-2 text-green-600 font-bold">• {t("auctions.highestBid", "Highest Bid")}</span>}
                                   </p>
                                   <p className="text-xs text-slate-500">
                                     {new Date(bid.createdAt).toLocaleString('vi-VN', {
@@ -438,7 +575,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                     ) : (
                       <div className="text-center py-8">
                         <Gavel className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 text-sm">No bids placed yet. Be the first to bid!</p>
+                        <p className="text-slate-500 text-sm">{t("auctions.noBidsYet", "No bids placed yet. Be the first to bid!")}</p>
                       </div>
                     )}
                   </div>
@@ -535,9 +672,16 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
               {/* Bidding Card */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <div>
+                <div className={`transition-all duration-300 ${isNewBidFlash ? 'bg-green-50 -m-6 p-6 rounded-2xl' : ''}`}>
                   <p className="text-sm text-slate-500 mb-1">{t("auctions.currentBid")}</p>
-                  <p className="text-3xl font-bold text-slate-900">{formatAuctionPrice(currentBid)}</p>
+                  <p className={`text-3xl font-bold transition-all duration-300 ${isNewBidFlash ? 'text-green-600 scale-110' : 'text-slate-900'}`}>
+                    {formatAuctionPrice(currentBid)}
+                  </p>
+                  {isNewBidFlash && (
+                    <p className="text-xs text-green-600 mt-1 animate-pulse">
+                      🔥 {t("auctions.newBid", "New bid placed!")}
+                    </p>
+                  )}
                 </div>
 
                 {timeLeft.isExpired ? (
@@ -585,7 +729,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                           <div className="flex-1">
                             <p className="text-sm font-medium text-blue-900 mb-1">{t("auctions.depositRequired")}</p>
                             <p className="text-xs text-blue-700">
-                              Pay a deposit of {formatAuctionPrice(auction.depositAmount)} to start bidding
+                              {t("auctions.depositMessagePart1", "Pay a deposit of")} {formatAuctionPrice(auction.depositAmount)} {t("auctions.depositMessagePart2", "to start bidding")}
                             </p>
                           </div>
                         </div>

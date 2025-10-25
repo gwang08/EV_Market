@@ -37,7 +37,6 @@ function MyListings() {
   const { t } = useI18nContext();
   const { toasts, success, error: showError, removeToast } = useToast();
   const { refreshVehicles, refreshBatteries } = useDataContext();
-  const [filter, setFilter] = useState<"all" | "active" | "sold">("all");
   const [tab, setTab] = useState<ListingType>("vehicle");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [batteries, setBatteries] = useState<Battery[]>([]);
@@ -189,7 +188,7 @@ function MyListings() {
   const listings = useMemo(() => {
     if (tab === "vehicle")
       return vehicles
-        .filter((v) => v.status !== "DELISTED") // Ẩn các sản phẩm DELISTED
+        .filter((v) => v.status !== "DELISTED" && v.status === "AVAILABLE") // Chỉ hiển thị AVAILABLE
         .map((v) => ({
           id: v.id,
           type: "vehicle" as const,
@@ -208,7 +207,7 @@ function MyListings() {
           },
         }));
     return batteries
-      .filter((b) => b.status !== "DELISTED") // Ẩn các sản phẩm DELISTED
+      .filter((b) => b.status !== "DELISTED" && b.status === "AVAILABLE") // Chỉ hiển thị AVAILABLE
       .map((b) => ({
         id: b.id,
         type: "battery" as const,
@@ -224,10 +223,6 @@ function MyListings() {
         },
       }));
   }, [tab, vehicles, batteries]);
-
-  const filteredListings = listings.filter((l) =>
-    filter === "all" ? true : l.status === filter
-  );
 
   const openEdit = (item: { id: string; type: ListingType }) => {
     setEditType(item.type);
@@ -520,44 +515,8 @@ function MyListings() {
             </span>
           </button>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-700 hover:bg-blue-50"
-            }
-          `}
-          >
-            {t("seller.listings.all")}
-          </button>
-          <button
-            onClick={() => setFilter("active")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "active"
-                ? "bg-green-600 text-white"
-                : "bg-white text-slate-700 hover:bg-green-50"
-            }
-          `}
-          >
-            {t("seller.listings.active")}
-          </button>
-          <button
-            onClick={() => setFilter("sold")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "sold"
-                ? "bg-gray-600 text-white"
-                : "bg-white text-slate-700 hover:bg-gray-50"
-            }
-          `}
-          >
-            {t("seller.listings.sold")}
-          </button>
-        </div>
+        
+   
       </div>
 
       {/* Loading/Error */}
@@ -570,7 +529,7 @@ function MyListings() {
 
       {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-        {filteredListings.map((item, idx) => (
+        {listings.map((item, idx) => (
           <div
             key={item.id}
             className="group relative flex flex-col bg-white rounded-3xl shadow-2xl border border-blue-100 hover:border-blue-400 hover:shadow-[0_8px_32px_0_rgba(59,130,246,0.10)] transition-all duration-300 overflow-hidden cursor-pointer"
@@ -697,7 +656,7 @@ function MyListings() {
       </div>
 
       {/* Empty State */}
-      {filteredListings.length === 0 && !loading && (
+      {listings.length === 0 && !loading && (
         <div className="text-center py-20 bg-white rounded-xl shadow border border-gray-100 mt-8">
           <div className="max-w-md mx-auto">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">

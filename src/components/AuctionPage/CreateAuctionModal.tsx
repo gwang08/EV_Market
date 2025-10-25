@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { X, Upload, Car, Battery, Loader2, Trash2, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { createAuction } from "@/services";
 import { useI18nContext } from "@/providers/I18nProvider";
@@ -7,6 +7,12 @@ import { useToast } from "@/hooks/useToast";
 import { useCurrencyInput } from "@/hooks/useCurrencyInput";
 import { ToastContainer } from "@/components/common/Toast";
 import colors from "@/Utils/Color";
+import {
+  validateField,
+  getFieldError,
+  hasFieldError,
+  ValidationError,
+} from "@/Utils/validation";
 
 interface CreateAuctionModalProps {
   isOpen: boolean;
@@ -30,6 +36,9 @@ export default function CreateAuctionModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  
+  // Validation errors - sử dụng ValidationError[] giống AddListing
+  const [errors, setErrors] = useState<ValidationError[]>([]);
 
   // Common fields
   const [title, setTitle] = useState("");
@@ -53,6 +62,28 @@ export default function CreateAuctionModal({
     { number: 2, title: t("seller.addListing.fields.uploadPhotos", "Photos") },
     { number: 3, title: t("auctions.settings", "Auction Settings") },
   ];
+  
+  // Handle input change
+  const handleInputChange = useCallback((field: string, value: string, setter: (val: string) => void) => {
+    setter(value);
+  }, []);
+
+  // Handle validation on blur - giống AddListing
+  const handleInputBlur = useCallback(
+    (field: string, value: string) => {
+      const error = validateField(field, value, auctionType === "vehicles" ? "vehicle" : "battery");
+
+      if (error) {
+        setErrors((prev) => [
+          ...prev.filter((err) => err.field !== field),
+          { field, message: error },
+        ]);
+      } else {
+        setErrors((prev) => prev.filter((err) => err.field !== field));
+      }
+    },
+    [auctionType]
+  );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -176,9 +207,21 @@ export default function CreateAuctionModal({
     onClose();
   };
 
-  const canProceedToStep2 = title && description && brand && year && (auctionType === "vehicles" ? model && mileageInput.rawValue : capacity && health);
+  const canProceedToStep2 = 
+    title && description && brand && year && 
+    (auctionType === "vehicles" ? (model && mileageInput.rawValue) : (capacity && health)) &&
+    !hasFieldError(errors, 'title') && !hasFieldError(errors, 'description') && 
+    !hasFieldError(errors, 'brand') && !hasFieldError(errors, 'year') &&
+    (auctionType === "vehicles" 
+      ? (!hasFieldError(errors, 'model') && !hasFieldError(errors, 'mileage')) 
+      : (!hasFieldError(errors, 'capacity') && !hasFieldError(errors, 'health'))
+    );
+    
   const canProceedToStep3 = images.length > 0;
-  const canSubmit = startingPriceInput.rawValue && bidIncrementInput.rawValue;
+  
+  const canSubmit = 
+    startingPriceInput.rawValue && bidIncrementInput.rawValue &&
+    !hasFieldError(errors, 'startingPrice') && !hasFieldError(errors, 'bidIncrement');
 
   if (!isOpen) return null;
 
@@ -259,9 +302,13 @@ export default function CreateAuctionModal({
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      onBlur={() => handleInputBlur('title', title)}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        hasFieldError(errors, 'title') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      } focus:ring-1`}
                       placeholder="Tesla Model 3 2024"
                     />
+                    {getFieldError(errors, 'title') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'title')!)}</p>}
                   </div>
 
                   <div>
@@ -272,9 +319,13 @@ export default function CreateAuctionModal({
                       type="text"
                       value={brand}
                       onChange={(e) => setBrand(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      onBlur={() => handleInputBlur('brand', brand)}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        hasFieldError(errors, 'brand') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      } focus:ring-1`}
                       placeholder="Tesla, BYD"
                     />
+                    {getFieldError(errors, 'brand') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'brand')!)}</p>}
                   </div>
 
     
@@ -287,9 +338,13 @@ export default function CreateAuctionModal({
                       type="number"
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      onBlur={() => handleInputBlur('year', year)}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        hasFieldError(errors, 'year') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      } focus:ring-1`}
                       placeholder="2024"
                     />
+                    {getFieldError(errors, 'year') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'year')!)}</p>}
                   </div>
 
                   {auctionType === "vehicles" ? (
@@ -302,9 +357,13 @@ export default function CreateAuctionModal({
                           type="text"
                           value={model}
                           onChange={(e) => setModel(e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          onBlur={() => handleInputBlur('model', model)}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            hasFieldError(errors, 'model') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                          } focus:ring-1`}
                           placeholder="Model 3"
                         />
+                        {getFieldError(errors, 'model') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'model')!)}</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-1.5" style={{ color: colors.Text }}>
@@ -314,9 +373,13 @@ export default function CreateAuctionModal({
                           type="text"
                           value={mileageInput.displayValue}
                           onChange={(e) => mileageInput.handleChange(e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          onBlur={() => handleInputBlur('mileage', mileageInput.rawValue)}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            hasFieldError(errors, 'mileage') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                          } focus:ring-1`}
                           placeholder="25,000"
                         />
+                        {getFieldError(errors, 'mileage') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'mileage')!)}</p>}
                       </div>
                     </>
                   ) : (
@@ -329,9 +392,13 @@ export default function CreateAuctionModal({
                           type="number"
                           value={capacity}
                           onChange={(e) => setCapacity(e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          onBlur={() => handleInputBlur('capacity', capacity)}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            hasFieldError(errors, 'capacity') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                          } focus:ring-1`}
                           placeholder="95"
                         />
+                        {getFieldError(errors, 'capacity') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'capacity')!)}</p>}
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-1.5" style={{ color: colors.Text }}>
@@ -341,11 +408,15 @@ export default function CreateAuctionModal({
                           type="number"
                           value={health}
                           onChange={(e) => setHealth(e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          onBlur={() => handleInputBlur('health', health)}
+                          className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                            hasFieldError(errors, 'health') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                          } focus:ring-1`}
                           placeholder="90"
                           min="0"
                           max="100"
                         />
+                        {getFieldError(errors, 'health') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'health')!)}</p>}
                       </div>
                     </>
                   )}
@@ -358,10 +429,14 @@ export default function CreateAuctionModal({
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    onBlur={() => handleInputBlur('description', description)}
                     rows={3}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
+                    className={`w-full px-3 py-2 text-sm rounded-lg border transition-all resize-none ${
+                      hasFieldError(errors, 'description') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                    } focus:ring-1`}
                     placeholder={t("seller.addListing.descriptionPlaceholder", "Describe your item...")}
                   />
+                  {getFieldError(errors, 'description') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'description')!)}</p>}
                 </div>
               </div>
             )}
@@ -421,9 +496,13 @@ export default function CreateAuctionModal({
                       type="text"
                       value={startingPriceInput.displayValue}
                       onChange={(e) => startingPriceInput.handleChange(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      onBlur={() => handleInputBlur('startingPrice', startingPriceInput.rawValue)}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        hasFieldError(errors, 'startingPrice') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      } focus:ring-1`}
                       placeholder="5,000,000"
                     />
+                    {getFieldError(errors, 'startingPrice') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'startingPrice')!)}</p>}
                   </div>
 
                   <div>
@@ -434,9 +513,13 @@ export default function CreateAuctionModal({
                       type="text"
                       value={bidIncrementInput.displayValue}
                       onChange={(e) => bidIncrementInput.handleChange(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      onBlur={() => handleInputBlur('bidIncrement', bidIncrementInput.rawValue)}
+                      className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
+                        hasFieldError(errors, 'bidIncrement') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      } focus:ring-1`}
                       placeholder="100,000"
                     />
+                    {getFieldError(errors, 'bidIncrement') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'bidIncrement')!)}</p>}
                   </div>
 
                   <div>
