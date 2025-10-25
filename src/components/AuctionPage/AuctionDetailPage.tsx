@@ -28,6 +28,7 @@ import {
 } from "@/services";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { useToast } from "@/hooks/useToast";
+import { useCurrencyInput } from "@/hooks/useCurrencyInput";
 
 interface AuctionDetailPageProps {
   auctionId: string;
@@ -42,8 +43,8 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0, isExpired: false });
   
-  // Bidding state
-  const [bidAmount, setBidAmount] = useState(0);
+  // Bidding state with currency formatting
+  const bidAmountInput = useCurrencyInput("");
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [isPayingDeposit, setIsPayingDeposit] = useState(false);
   const [hasDeposit, setHasDeposit] = useState(false);
@@ -95,7 +96,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           
           setAuction(auctionData);
           setCurrentBid(highestBid);
-          setBidAmount(highestBid + auctionData.bidIncrement);
+          bidAmountInput.setValue(String(highestBid + auctionData.bidIncrement));
           setHasDeposit(hasDeposit);
         }
       } catch (error) {
@@ -188,16 +189,17 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
     if (!auction || !auction.listingType) return;
 
-    if (bidAmount < currentBid + auction.bidIncrement) {
+    const bidValue = Number(bidAmountInput.rawValue);
+    if (bidValue < currentBid + auction.bidIncrement) {
       showError(`Minimum bid is ${formatAuctionPrice(currentBid + auction.bidIncrement)}`);
       return;
     }
 
     try {
       setIsPlacingBid(true);
-      await placeBid(auction.listingType, auction.id, { amount: bidAmount });
-      setCurrentBid(bidAmount);
-      setBidAmount(bidAmount + auction.bidIncrement);
+      await placeBid(auction.listingType, auction.id, { amount: bidValue });
+      setCurrentBid(bidValue);
+      bidAmountInput.setValue(String(bidValue + auction.bidIncrement));
       showSuccess(t("auctions.bidPlaced"));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t("auctions.bidError");
@@ -628,11 +630,9 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                       </label>
                       <div className="relative">
                         <input
-                          type="number"
-                          value={bidAmount}
-                          onChange={(e) => setBidAmount(Number(e.target.value))}
-                          min={currentBid + auction.bidIncrement}
-                          step={auction.bidIncrement}
+                          type="text"
+                          value={bidAmountInput.displayValue}
+                          onChange={(e) => bidAmountInput.handleChange(e.target.value)}
                           className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-semibold"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">VND</span>
@@ -644,7 +644,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
                     <button
                       onClick={handlePlaceBid}
-                      disabled={isPlacingBid || bidAmount < currentBid + auction.bidIncrement || timeLeft.isExpired}
+                      disabled={isPlacingBid || Number(bidAmountInput.rawValue) < currentBid + auction.bidIncrement || timeLeft.isExpired}
                       className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isPlacingBid ? (

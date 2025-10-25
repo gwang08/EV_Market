@@ -41,7 +41,16 @@ function BrowseFilters({
         ];
 
   const handleInputChange = (field: keyof FilterState, value: any) => {
-    onFilterChange({ ...filters, [field]: value });
+    // Format price fields with commas
+    if (field === "minPrice" || field === "maxPrice") {
+      const numericValue = value.replace(/,/g, "");
+      if (numericValue === "" || /^\d*$/.test(numericValue)) {
+        const formatted = numericValue ? numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "";
+        onFilterChange({ ...filters, [field]: formatted });
+      }
+    } else {
+      onFilterChange({ ...filters, [field]: value });
+    }
   };
 
   const handleBrandToggle = (brand: string) => {
@@ -176,31 +185,29 @@ function BrowseFilters({
             <div>
               <label className="block text-xs mb-1 text-slate-400">Min</label>
               <input
-                type="number"
+                type="text"
                 value={filters.minPrice}
                 onChange={(e) => handleInputChange("minPrice", e.target.value)}
-                placeholder="$0"
+                placeholder="0"
                 className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50"
                 style={{
                   borderColor: colors.Border,
                   color: colors.Text,
                 }}
-                min={0}
               />
             </div>
             <div>
               <label className="block text-xs mb-1 text-slate-400">Max</label>
               <input
-                type="number"
+                type="text"
                 value={filters.maxPrice}
                 onChange={(e) => handleInputChange("maxPrice", e.target.value)}
-                placeholder="$50000"
+                placeholder="50,000,000"
                 className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50"
                 style={{
                   borderColor: colors.Border,
                   color: colors.Text,
                 }}
-                min={0}
               />
             </div>
           </div>
