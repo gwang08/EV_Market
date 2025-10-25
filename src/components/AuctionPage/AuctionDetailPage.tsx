@@ -51,6 +51,12 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   
   const [activeTab, setActiveTab] = useState<"details" | "specs" | "bids">("details");
 
+  // Check if auction has started
+  const isAuctionStarted = () => {
+    if (!auction?.auctionStartsAt) return true; // Default to true if no start time
+    return new Date() >= new Date(auction.auctionStartsAt);
+  };
+
   useEffect(() => {
     const fetchAuctionDetail = async () => {
       try {
@@ -69,15 +75,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
         if (data && data.data) {
           const auctionData = data.data;
           
-          // Debug: Log auction data
-          console.log('🎯 Auction Data:', {
-            hasUserDeposit: auctionData.hasUserDeposit,
-            userDeposit: auctionData.userDeposit,
-            bidsCount: auctionData.bids?.length,
-            startsAt: new Date(auctionData.auctionStartsAt).toLocaleString('vi-VN'),
-            endsAt: new Date(auctionData.auctionEndsAt).toLocaleString('vi-VN'),
-            currentTime: new Date().toLocaleString('vi-VN')
-          });
+      
           
           // Add listingType to auction data
           auctionData.listingType = listingType;
@@ -93,11 +91,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           const hasDeposit = auctionData.hasUserDeposit === true || 
                             (auctionData.userDeposit?.status === 'PAID');
           
-          console.log('💰 Deposit Status:', {
-            hasUserDeposit: auctionData.hasUserDeposit,
-            userDepositStatus: auctionData.userDeposit?.status,
-            finalHasDeposit: hasDeposit
-          });
+        
           
           setAuction(auctionData);
           setCurrentBid(highestBid);
@@ -121,12 +115,18 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
     if (!auction) return;
     
     const timer = setInterval(() => {
-      const remaining = getTimeRemaining(auction.auctionEndsAt);
-      setTimeLeft(remaining);
+      const now = new Date();
+      const startTime = new Date(auction.auctionStartsAt);
+      const endTime = new Date(auction.auctionEndsAt);
       
-      // Debug: Log countdown
-      if (remaining.isExpired) {
-        console.log('⏰ Auction has ENDED!');
+      // If auction hasn't started yet, countdown to start time
+      if (now < startTime) {
+        const remaining = getTimeRemaining(auction.auctionStartsAt);
+        setTimeLeft(remaining);
+      } else {
+        // If auction has started, countdown to end time
+        const remaining = getTimeRemaining(auction.auctionEndsAt);
+        setTimeLeft(remaining);
       }
     }, 1000);
 
@@ -155,7 +155,6 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       const errorMessage = error instanceof Error ? error.message : t("auctions.depositError");
       const lowerError = errorMessage.toLowerCase();
       
-      console.log('🚨 Deposit Error:', errorMessage);
       
       // Check for insufficient balance error
       if (lowerError.includes('insufficient') || 
@@ -202,22 +201,14 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       showSuccess(t("auctions.bidPlaced"));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t("auctions.bidError");
-      
-      console.log('🚨 Bid Error Caught:', {
-        error,
-        errorMessage,
-        errorType: typeof error,
-        errorKeys: error instanceof Error ? Object.keys(error) : 'not an Error object'
-      });
+  
       
       // Handle specific error cases (case-insensitive matching)
       const lowerError = errorMessage.toLowerCase();
       
       if (lowerError.includes('must pay') || lowerError.includes('deposit') && lowerError.includes('before')) {
-        console.log('❌ Showing deposit required error');
         showError(t("auctions.errors.depositRequiredError"));
       } else if (lowerError.includes('insufficient') || lowerError.includes('not enough') || lowerError.includes('balance')) {
-        console.log('❌ Showing insufficient balance error');
         showError(
           t("auctions.errors.insufficientBalance"),
           6000,
@@ -225,25 +216,18 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           () => router.push('/wallet')
         );
       } else if (lowerError.includes('cannot bid') && lowerError.includes('own')) {
-        console.log('❌ Showing own auction error');
         showError(t("auctions.errors.ownAuctionError"));
       } else if (lowerError.includes('already') && lowerError.includes('highest')) {
-        console.log('❌ Showing already highest bidder error');
         showError(t("auctions.errors.alreadyHighestBidder"));
       } else if (lowerError.includes('not started') || lowerError.includes('not yet')) {
-        console.log('❌ Showing auction not started error');
         showError(t("auctions.errors.auctionNotStarted"));
       } else if (lowerError.includes('ended') || lowerError.includes('already ended')) {
-        console.log('❌ Showing auction ended error');
         showError(t("auctions.errors.auctionAlreadyEnded"));
       } else if (lowerError.includes('must be at least') || lowerError.includes('minimum bid')) {
-        console.log('❌ Showing bid too low error');
-        // Extract amount from error message if possible
         const match = errorMessage.match(/\d+/);
         const amount = match ? formatAuctionPrice(parseInt(match[0])) : '';
         showError(t("auctions.errors.bidTooLow").replace('{amount}', amount));
       } else {
-        console.log('❌ Showing generic error:', errorMessage);
         showError(errorMessage);
       }
     } finally {
@@ -496,7 +480,12 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
               <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white shadow-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-5 h-5" />
-                  <span className="text-sm font-medium">{t("auctions.timeRemaining")}</span>
+                  <span className="text-sm font-medium">
+                    {!isAuctionStarted() 
+                      ? t("auctions.timeUntilStart", "Thời gian đến khi bắt đầu")
+                      : t("auctions.timeRemaining")
+                    }
+                  </span>
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center mb-4">
                   {[
@@ -514,7 +503,9 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                 {/* Auction Start Time */}
                 <div className="pt-3 border-t border-white/20 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="opacity-80">Started:</span>
+                    <span className="opacity-80">
+                      {!isAuctionStarted() ? t("auctions.willStart", "Sẽ bắt đầu") : t("auctions.started", "Đã bắt đầu")}:
+                    </span>
                     <span className="font-semibold">
                       {new Date(auction.auctionStartsAt).toLocaleString('vi-VN', {
                         day: '2-digit',
@@ -525,7 +516,9 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                     </span>
                   </div>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="opacity-80">Ends:</span>
+                    <span className="opacity-80">
+                      {!isAuctionStarted() ? t("auctions.willEnd", "Sẽ kết thúc") : t("auctions.ends", "Kết thúc")}:
+                    </span>
                     <span className="font-semibold">
                       {new Date(auction.auctionEndsAt).toLocaleString('vi-VN', {
                         day: '2-digit',
@@ -545,29 +538,72 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
                   <p className="text-3xl font-bold text-slate-900">{formatAuctionPrice(currentBid)}</p>
                 </div>
 
-                {!hasDeposit ? (
-                  <>
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-blue-900 mb-1">{t("auctions.depositRequired")}</p>
-                          <p className="text-xs text-blue-700">
-                            Pay a deposit of {formatAuctionPrice(auction.depositAmount)} to start bidding
-                          </p>
-                        </div>
+                {timeLeft.isExpired ? (
+                  /* Auction Ended */
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {t("auctions.auctionEnded")}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {t("auctions.auctionEndedDesc")}
+                        </p>
                       </div>
                     </div>
+                  </div>
+                ) : !hasDeposit ? (
+                  <>
+                    {!isAuctionStarted() ? (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-yellow-900 mb-1">
+                              {t("auctions.auctionNotStarted")}
+                            </p>
+                            <p className="text-xs text-yellow-700">
+                              {t("auctions.auctionNotStartedDesc")}{" "}
+                              {new Date(auction.auctionStartsAt).toLocaleString('vi-VN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-900 mb-1">{t("auctions.depositRequired")}</p>
+                            <p className="text-xs text-blue-700">
+                              Pay a deposit of {formatAuctionPrice(auction.depositAmount)} to start bidding
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       onClick={handlePayDeposit}
-                      disabled={isPayingDeposit}
+                      disabled={isPayingDeposit || !isAuctionStarted()}
                       className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isPayingDeposit ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           {t("wallet.processing")}
+                        </>
+                      ) : !isAuctionStarted() ? (
+                        <>
+                          <Clock className="w-5 h-5" />
+                          {t("auctions.notStartedYet")}
                         </>
                       ) : (
                         <>
@@ -608,7 +644,7 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
                     <button
                       onClick={handlePlaceBid}
-                      disabled={isPlacingBid || bidAmount < currentBid + auction.bidIncrement}
+                      disabled={isPlacingBid || bidAmount < currentBid + auction.bidIncrement || timeLeft.isExpired}
                       className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isPlacingBid ? (
