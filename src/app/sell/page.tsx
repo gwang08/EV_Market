@@ -35,7 +35,7 @@ export default function SellPage() {
         return <MyListings />;
 
       case "add":
-        return <AddListing />;
+        return <AddListing onSuccess={() => setActiveTab("listings")} />;
 
       default:
         return null;

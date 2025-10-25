@@ -7,7 +7,7 @@ import type {
   PayDepositRequest
 } from '../types/auction'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://beevmarket-production.up.railway.app/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging-backup.onrender.com/api/v1'
 
 // Helper function to handle API responses
 const handleApiResponse = async (response: Response) => {
@@ -42,7 +42,7 @@ export const getLiveAuctions = async (page = 1, limit = 10): Promise<LiveAuction
     }
 
  
-    const response = await fetch(`${API_BASE_URL}/auctions/live?time=future`, {
+    const response = await fetch(`${API_BASE_URL}/auctions/live`, {
       method: 'GET',
       headers,
       credentials: 'include',
@@ -121,7 +121,8 @@ export const placeBid = async (
     const data = await handleApiResponse(response)
     return data
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : 'Failed to place bid')
+    // Re-throw the error to preserve the original message from handleApiResponse
+    throw error
   }
 }
 
@@ -158,7 +159,8 @@ export const payDeposit = async (
     const data = await handleApiResponse(response)
     return data
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : 'Failed to pay deposit')
+    // Re-throw the error to preserve the original message from handleApiResponse
+    throw error
   }
 }
 
@@ -191,16 +193,7 @@ export const getTimeRemaining = (endDate: string): {
   const total = endTime - now
   
   // Debug log
-  console.log('⏰ Time Calculation:', {
-    endDate,
-    endTime: new Date(endTime).toISOString(),
-    now: new Date(now).toISOString(),
-    nowLocal: new Date(now).toLocaleString('vi-VN'),
-    endLocal: new Date(endTime).toLocaleString('vi-VN'),
-    diffMs: total,
-    diffMinutes: Math.floor(total / 1000 / 60)
-  })
-  
+
   const seconds = Math.floor((total / 1000) % 60)
   const minutes = Math.floor((total / 1000 / 60) % 60)
   const hours = Math.floor((total / (1000 * 60 * 60)) % 24)
@@ -324,6 +317,7 @@ export const createAuction = async (
     const data = await handleApiResponse(response)
     return data
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : 'Failed to create auction')
+    // Re-throw the error to preserve the original message from handleApiResponse
+    throw error
   }
 }

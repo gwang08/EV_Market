@@ -11,7 +11,7 @@ export default function AuctionDetail() {
   return (
     <>
       <Header />
-      <AuctionDetailPage auctionId={auctionId} />;
+      <AuctionDetailPage auctionId={auctionId} />
       <Footer />
     </>
   );
