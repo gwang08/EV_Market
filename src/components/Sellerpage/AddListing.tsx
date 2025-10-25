@@ -13,7 +13,6 @@ import { useCurrencyInput } from "../../hooks/useCurrencyInput";
 import { ToastContainer } from "../common/Toast";
 import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
-import { requestAuction } from "../../services";
 import { useDataContext } from "../../contexts/DataContext";
 import { FiBatteryCharging, FiTruck } from "react-icons/fi";
 
@@ -69,6 +68,10 @@ interface SelectProps {
   errors: ValidationError[];
   handleChange: (field: keyof FormData, value: string) => void;
   handleBlur: (field: keyof FormData) => void;
+}
+
+interface AddListingProps {
+  onSuccess?: () => void;
 }
 
 // Input component - nâng cấp giao diện
@@ -183,7 +186,7 @@ const Select = ({
   );
 };
 
-function AddListing() {
+function AddListing({ onSuccess }: AddListingProps = {}) {
   const { t } = useI18nContext();
   const { toasts, success, error: showError, removeToast } = useToast();
   const { refreshVehicles, refreshBatteries } = useDataContext();
@@ -282,7 +285,15 @@ function AddListing() {
       return;
     }
 
-    const validation = validateForm(form, listingType);
+    // Update form with currency input values before validation
+    const formToValidate = {
+      ...form,
+      price: priceInput.rawValue,
+      mileage: mileageInput.rawValue,
+      batteryCapacity: batteryCapacityInput.rawValue,
+    };
+
+    const validation = validateForm(formToValidate, listingType);
     if (!validation.isValid) {
       setErrors(validation.errors);
       setCurrentStep(1); // Go back to first step with errors
@@ -404,6 +415,11 @@ function AddListing() {
       setImagePreviews([]);
       setCurrentStep(1);
       setErrors([]);
+
+      // Call onSuccess callback to switch to MyListings tab
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (e) {
       console.error("Error in handleSubmit:", e);
       const errorMessage =
@@ -1174,8 +1190,16 @@ function AddListing() {
       }
     }
 
-    // Kiểm tra field rỗng
-    const emptyFields = requiredFields.filter((field) => !form[field]);
+    // Kiểm tra field rỗng - phải check cả currency input hooks
+    const emptyFields = requiredFields.filter((field) => {
+      // Check currency input hooks for price, mileage, batteryCapacity
+      if (field === "price") return !priceInput.rawValue;
+      if (field === "mileage") return !mileageInput.rawValue;
+      if (field === "batteryCapacity") return !batteryCapacityInput.rawValue;
+      // Otherwise check form
+      return !form[field];
+    });
+    
     if (emptyFields.length > 0) {
       setErrors(
         emptyFields.map((field) => ({

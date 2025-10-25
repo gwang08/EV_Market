@@ -181,6 +181,7 @@
       "active": "Hoạt động",
       "sold": "Đã bán",
       "pending": "Chờ duyệt",
+      "availableOnly": "Chỉ hiển thị tin còn hàng",
       "views": "lượt xem",
       "messages": "tin nhắn",
       "edit": "Chỉnh sửa",
@@ -791,6 +792,13 @@
     "highestBid": "Giá cao nhất",
     "currentBid": "Giá hiện tại",
     "yourBid": "Giá của bạn",
+    "newBid": "Có giá mới!",
+    "bidder": "Người đặt giá",
+    "bidsPlaced": "lượt đặt giá",
+    "bidPlacedSingular": "lượt đặt giá",
+    "noBidsYet": "Chưa có ai đặt giá. Hãy là người đầu tiên!",
+    "depositMessagePart1": "Đặt cọc",
+    "depositMessagePart2": "để bắt đầu đặt giá",
     "placeBid": "Đặt giá",
     "payDeposit": "Đặt cọc",
     "depositPaid": "Đã đặt cọc",
@@ -830,6 +838,7 @@
     "step": "Bước",
     "of": "của",
     "errors": {
+      "loginRequired": "Vui lòng đăng nhập để tiếp tục",
       "depositRequiredError": "Bạn phải đặt cọc trước khi đấu giá. Vui lòng đặt cọc trước.",
       "insufficientBalance": "Số dư ví không đủ. Vui lòng nạp thêm tiền vào ví.",
       "ownAuctionError": "Bạn không thể đấu giá sản phẩm của chính mình.",
@@ -837,7 +846,12 @@
       "auctionNotStarted": "Phiên đấu giá chưa bắt đầu.",
       "auctionAlreadyEnded": "Phiên đấu giá đã kết thúc.",
       "bidTooLow": "Giá đặt của bạn phải ít nhất {amount}.",
-      "goToWallet": "Đến trang Ví"
+      "goToWallet": "Nạp tiền",
+      "depositFailed": "Đặt cọc thất bại. Vui lòng thử lại.",
+      "bidFailed": "Đặt giá thất bại. Vui lòng thử lại.",
+      "alreadyDeposited": "Bạn đã đặt cọc cho phiên đấu giá này rồi.",
+      "networkError": "Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.",
+      "unauthorized": "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."
     }
   }
 }

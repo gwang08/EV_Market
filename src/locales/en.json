@@ -185,6 +185,7 @@
       "active": "Active",
       "sold": "Sold",
       "pending": "Pending",
+      "availableOnly": "Available Listings Only",
       "views": "views",
       "messages": "messages",
       "edit": "Edit",
@@ -803,6 +804,13 @@
     "highestBid": "Highest Bid",
     "currentBid": "Current Bid",
     "yourBid": "Your Bid",
+    "newBid": "New bid placed!",
+    "bidder": "Bidder",
+    "bidsPlaced": "bids placed",
+    "bidPlacedSingular": "bid placed",
+    "noBidsYet": "No bids placed yet. Be the first to bid!",
+    "depositMessagePart1": "Pay a deposit of",
+    "depositMessagePart2": "to start bidding",
     "placeBid": "Place Bid",
     "payDeposit": "Pay Deposit",
     "depositPaid": "Deposit Paid",
@@ -842,6 +850,7 @@
     "step": "Step",
     "of": "of",
     "errors": {
+      "loginRequired": "Please login to continue",
       "depositRequiredError": "You must pay a deposit before placing a bid. Please pay the deposit first.",
       "insufficientBalance": "Insufficient wallet balance. Please top up your wallet.",
       "ownAuctionError": "You cannot bid on your own auction.",
@@ -849,7 +858,12 @@
       "auctionNotStarted": "This auction has not started yet.",
       "auctionAlreadyEnded": "This auction has already ended.",
       "bidTooLow": "Your bid must be at least {amount}.",
-      "goToWallet": "Go to Wallet"
+      "goToWallet": "Go to Wallet",
+      "depositFailed": "Failed to pay deposit. Please try again.",
+      "bidFailed": "Failed to place bid. Please try again.",
+      "alreadyDeposited": "You have already paid the deposit for this auction.",
+      "networkError": "Network error. Please check your connection and try again.",
+      "unauthorized": "Your session has expired. Please login again."
     }
   }
 }

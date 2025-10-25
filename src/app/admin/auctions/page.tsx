@@ -7,8 +7,7 @@ import AuctionRequestCard from "@/components/Admin/AuctionRequestCard";
 import { getAuctionRequests, reviewAuctionRequest } from "@/services/Admin";
 import { AuctionRequest } from "@/types/admin";
 import { Loader2, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { ToastContainer } from "@/components/common/Toast";
+import { useToast } from "@/providers/ToastProvider";
 
 function AuctionManagementPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -16,7 +15,7 @@ function AuctionManagementPage() {
   const [requests, setRequests] = useState<AuctionRequest[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { toasts, success, error, removeToast } = useToast();
+  const { success, error } = useToast();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -98,8 +97,6 @@ function AuctionManagementPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ToastContainer toasts={toasts} onClose={removeToast} />
-      
       {/* Sidebar */}
       <AdminSidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
 
