@@ -1,15 +1,18 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Loader2, AlertCircle, Sparkles } from "lucide-react";
-import { getLiveAuctions } from "@/services";
+import { Search, Filter, Loader2, AlertCircle, Sparkles, Plus } from "lucide-react";
+import { getLiveAuctions, isAuthenticated } from "@/services";
 import { LiveAuction } from "@/types/auction";
 import AuctionCard from "./AuctionCard";
+import CreateAuctionModal from "./CreateAuctionModal";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { GridSkeleton } from "@/components/common/Skeleton";
 import colors from "@/Utils/Color";
+import { useRouter } from "next/navigation";
 
 export default function AuctionsList() {
   const { t } = useI18nContext();
+  const router = useRouter();
   const [auctions, setAuctions] = useState<LiveAuction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +21,7 @@ export default function AuctionsList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     loadAuctions();
@@ -49,6 +53,18 @@ export default function AuctionsList() {
 
     return matchesSearch && matchesType;
   });
+
+  const handleCreateAuction = () => {
+    if (!isAuthenticated()) {
+      router.push("/login");
+      return;
+    }
+    setIsCreateModalOpen(true);
+  };
+
+  const handleAuctionCreated = () => {
+    loadAuctions();
+  };
 
   if (loading && auctions.length === 0) {
     return (
@@ -147,72 +163,85 @@ export default function AuctionsList() {
                 <span>{totalResults} {t("auctions.activeAuctions", "Active Auctions")}</span>
               </div>
             </div>
+
+            {/* Create Auction Button */}
+            <div className="mt-6">
+              <button
+                onClick={handleCreateAuction}
+                className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+              >
+                <Plus className="w-5 h-5" />
+                {t("auctions.createNew", "Create New Auction")}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm" style={{ borderBottom: `1px solid ${colors.Border}` }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: colors.Description }} />
-              <input
-                type="text"
-                placeholder={t("browse.searchPlaceholder", "Search auctions...")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                style={{ border: `1px solid ${colors.Border}`, color: colors.Text }}
-              />
-            </div>
+      {/* Filters & Search - Compact version */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center max-w-4xl mx-auto">
+          {/* Search - Shorter */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: colors.Description }} />
+            <input
+              type="text"
+              placeholder={t("browse.searchPlaceholder", "Search auctions...")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+              style={{ 
+                backgroundColor: colors.Background,
+                border: `1px solid ${colors.Border}`, 
+                color: colors.Text 
+              }}
+            />
+          </div>
 
-            {/* Type Filter */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilterType("ALL")}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                  filterType === "ALL"
-                    ? "bg-blue-700 text-white shadow-lg"
-                    : "bg-white hover:bg-blue-50"
-                }`}
-                style={filterType !== "ALL" 
-                  ? { border: `1px solid ${colors.Border}`, color: colors.SubText }
-                  : {}
-                }
-              >
-                {t("browse.allProducts", "All")}
-              </button>
-              <button
-                onClick={() => setFilterType("VEHICLE")}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                  filterType === "VEHICLE"
-                    ? "bg-blue-700 text-white shadow-lg"
-                    : "bg-white hover:bg-blue-50"
-                }`}
-                style={filterType !== "VEHICLE" 
-                  ? { border: `1px solid ${colors.Border}`, color: colors.SubText }
-                  : {}
-                }
-              >
-                {t("browse.vehicles", "Vehicles")}
-              </button>
-              <button
-                onClick={() => setFilterType("BATTERY")}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                  filterType === "BATTERY"
-                    ? "bg-blue-700 text-white shadow-lg"
-                    : "bg-white hover:bg-blue-50"
-                }`}
-                style={filterType !== "BATTERY" 
-                  ? { border: `1px solid ${colors.Border}`, color: colors.SubText }
-                  : {}
-                }
-              >
-                {t("browse.batteries", "Batteries")}
-              </button>
-            </div>
+          {/* Type Filter - Compact */}
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => setFilterType("ALL")}
+              className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 shadow-sm ${
+                filterType === "ALL"
+                  ? "shadow-md"
+                  : "hover:shadow-md"
+              }`}
+              style={filterType === "ALL"
+                ? { backgroundColor: colors.Price, color: 'white' }
+                : { backgroundColor: colors.Background, border: `1px solid ${colors.Border}`, color: colors.SubText }
+              }
+            >
+              {t("browse.allProducts", "All")}
+            </button>
+            <button
+              onClick={() => setFilterType("VEHICLE")}
+              className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 shadow-sm ${
+                filterType === "VEHICLE"
+                  ? "shadow-md"
+                  : "hover:shadow-md"
+              }`}
+              style={filterType === "VEHICLE"
+                ? { backgroundColor: colors.Price, color: 'white' }
+                : { backgroundColor: colors.Background, border: `1px solid ${colors.Border}`, color: colors.SubText }
+              }
+            >
+              {t("browse.vehicles", "Vehicles")}
+            </button>
+            <button
+              onClick={() => setFilterType("BATTERY")}
+              className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 shadow-sm ${
+                filterType === "BATTERY"
+                  ? "shadow-md"
+                  : "hover:shadow-md"
+              }`}
+              style={filterType === "BATTERY"
+                ? { backgroundColor: colors.Price, color: 'white' }
+                : { backgroundColor: colors.Background, border: `1px solid ${colors.Border}`, color: colors.SubText }
+              }
+            >
+              {t("browse.batteries", "Batteries")}
+            </button>
           </div>
         </div>
       </div>
@@ -286,6 +315,13 @@ export default function AuctionsList() {
           </div>
         )}
       </div>
+
+      {/* Create Auction Modal */}
+      <CreateAuctionModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleAuctionCreated}
+      />
     </div>
   );
 }

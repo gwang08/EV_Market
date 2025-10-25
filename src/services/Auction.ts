@@ -7,7 +7,7 @@ import type {
   PayDepositRequest
 } from '../types/auction'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://beevmarket-production.up.railway.app/api/v1'
 
 // Helper function to handle API responses
 const handleApiResponse = async (response: Response) => {
@@ -36,17 +36,12 @@ const handleApiResponse = async (response: Response) => {
  */
 export const getLiveAuctions = async (page = 1, limit = 10): Promise<LiveAuctionsResponse> => {
   try {
-    const { ensureValidToken } = await import('./Auth')
-    const token = await ensureValidToken()
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     }
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
+ 
     const response = await fetch(`${API_BASE_URL}/auctions/live?time=future`, {
       method: 'GET',
       headers,
@@ -282,5 +277,53 @@ export const requestAuction = async (
     return data
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Failed to request auction')
+  }
+}
+
+/**
+ * Create a new auction listing (vehicle or battery)
+ * Requires authentication
+ * @param listingType - 'vehicles' or 'batteries'
+ * @param formData - FormData with all auction fields including images
+ */
+export interface CreateAuctionResponse {
+  message: string
+  data: {
+    id: string
+    title: string
+    status: string
+    isAuction: boolean
+    startingPrice: number
+    bidIncrement: number
+    depositAmount: number
+    [key: string]: any
+  }
+}
+
+export const createAuction = async (
+  listingType: 'vehicles' | 'batteries',
+  formData: FormData
+): Promise<CreateAuctionResponse> => {
+  try {
+    const { ensureValidToken } = await import('./Auth')
+    const token = await ensureValidToken()
+
+    if (!token) {
+      throw new Error('Authentication required to create auction')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auctions/${listingType}/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      body: formData
+    })
+
+    const data = await handleApiResponse(response)
+    return data
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to create auction')
   }
 }
