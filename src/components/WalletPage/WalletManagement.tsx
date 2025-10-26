@@ -3,7 +3,7 @@ import { useI18nContext } from '@/providers/I18nProvider';
 import { getWalletBalance, formatCurrency, WalletData } from '@/services';
 import { useToast } from '@/hooks/useToast';
 import TransactionHistory from './TransactionHistory';
-import AccrualFundsHold from './AccrualFundsHold';
+
 import DepositModal from './DepositModal';
 
 function WalletManagement() {
@@ -42,7 +42,6 @@ function WalletManagement() {
   };
 
   const handleWithdraw = () => {
-    console.log('Withdraw clicked');
     // Implement withdraw logic
   };
 
@@ -163,11 +162,7 @@ function WalletManagement() {
               </div>
             </div>
 
-            {/* Accrual Funds Hold */}
-            <AccrualFundsHold
-              holdAmount={walletData?.lockedBalance || 0}
-              description={t('wallet.lockedDescription')}
-            />
+        
           </div>
 
           {/* Right Column (2/3) - Transaction History */}
