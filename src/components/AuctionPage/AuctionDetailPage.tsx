@@ -192,8 +192,16 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   useEffect(() => {
     if (!auction) return;
 
-    // Create a channel for this specific auction
+    console.log('🔌 Setting up realtime subscription for auction:', auctionId, 'Type:', auction.listingType);
+
+    // Create a channel for this specific auction (theo hướng dẫn backend)
     const channel = supabase.channel(`auction-room-${auctionId}`);
+
+    // Determine which field to filter by
+    const filterColumn = auction.listingType === 'VEHICLE' ? 'vehicleId' : 'batteryId';
+    const filterString = `${filterColumn}=eq.${auctionId}`;
+    
+    console.log('📡 Subscribing with filter:', filterString);
 
     channel
       .on(
@@ -202,17 +210,17 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           event: 'INSERT',
           schema: 'public',
           table: 'Bid',
-          filter: auction.listingType === 'VEHICLE' 
-            ? `vehicleId=eq.${auctionId}` 
-            : `batteryId=eq.${auctionId}`
+          filter: filterString
         },
         (payload) => {
-          console.log('New bid received:', payload.new);
+          console.log('🎉 New bid received:', payload.new);
           
           // Update current bid with the new bid amount
           const newBid = payload.new as any;
           if (newBid && typeof newBid.amount === 'number') {
             const newBidAmount = newBid.amount;
+            console.log('💰 Updating current bid to:', newBidAmount);
+            
             setCurrentBid(newBidAmount);
             
             // Trigger flash animation
@@ -248,10 +256,20 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📊 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to realtime updates!');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error - check Supabase Replication settings');
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏱️ Subscription timed out');
+        }
+      });
 
-    // Cleanup: unsubscribe when component unmounts or auction changes
+    // Cleanup: unsubscribe when component unmounts or auction changes (theo hướng dẫn backend)
     return () => {
+      console.log('🔌 Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [auction, auctionId, bidAmountInput]);

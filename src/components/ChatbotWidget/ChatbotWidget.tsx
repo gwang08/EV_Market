@@ -30,6 +30,14 @@ export default function ChatbotWidget() {
     }
   }, [isOpen])
 
+  // Quick reply suggestions
+  const quickReplies = [
+    'Tìm xe điện trên 500 ngàn VND',
+    'Tìm pin xe điện trên 500 ngàn VND',
+    'Xe Tesla có sẵn',
+    'Xe điện cũ giá rẻ'
+  ]
+
   // Add welcome message on first open
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -98,14 +106,23 @@ export default function ChatbotWidget() {
     setIsOpen(false)
   }
 
+  const handleQuickReply = (text: string) => {
+    setInputValue(text)
+    // Auto send after a short delay
+    setTimeout(() => {
+      const event = new KeyboardEvent('keypress', { key: 'Enter' })
+      inputRef.current?.dispatchEvent(event)
+    }, 100)
+  }
+
   return (
     <>
       {/* Chat Window */}
       <div 
-        className={`fixed bottom-20 right-4 md:bottom-24 md:right-6 w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 transition-all duration-300 transform z-50 ${
+        className={`fixed bottom-24 right-4 md:bottom-28 md:right-6 w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 transition-all duration-300 transform z-50 ${
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
-        style={{ height: '500px', maxHeight: 'calc(100vh - 100px)' }}
+        style={{ height: '550px', maxHeight: 'calc(100vh - 120px)' }}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -134,7 +151,7 @@ export default function ChatbotWidget() {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50" style={{ height: 'calc(100% - 140px)' }}>
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50" style={{ height: messages.length === 1 ? 'calc(100% - 250px)' : 'calc(100% - 140px)' }}>
           {messages.map((message) => (
             <div 
               key={message.id} 
@@ -157,7 +174,7 @@ export default function ChatbotWidget() {
                   }`}
                 >
                   <div 
-                    className="text-sm leading-relaxed"
+                    className="text-sm leading-relaxed break-words whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ __html: formatChatMessage(message.content) }}
                   />
                   
@@ -168,12 +185,17 @@ export default function ChatbotWidget() {
                         <button
                           key={idx}
                           onClick={() => handleLinkClick(link.url)}
-                          className="w-full text-left px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-2 group"
+                          className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-200 flex items-center gap-3 group shadow-sm hover:shadow-md"
                         >
-                          <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </div>
+                          <span className="text-sm text-blue-900 font-semibold group-hover:text-blue-700 flex-1 break-words">{link.title}</span>
+                          <svg className="w-4 h-4 text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
-                          <span className="text-xs text-blue-700 font-medium group-hover:text-blue-800">{link.title}</span>
                         </button>
                       ))}
                     </div>
@@ -202,6 +224,24 @@ export default function ChatbotWidget() {
           
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Quick Replies - Only show when there's just the welcome message */}
+        {messages.length === 1 && (
+          <div className="px-4 py-3 bg-white border-t border-gray-200">
+            <p className="text-xs text-gray-500 mb-2.5 font-medium">💡 Gợi ý câu hỏi:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {quickReplies.map((reply, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleQuickReply(reply)}
+                  className="text-left px-3 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-400 rounded-lg transition-all text-xs text-gray-700 hover:text-blue-700 font-medium shadow-sm hover:shadow"
+                >
+                  {reply}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Input Area */}
         <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
