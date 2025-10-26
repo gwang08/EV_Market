@@ -119,10 +119,10 @@ export default function ChatbotWidget() {
     <>
       {/* Chat Window */}
       <div 
-        className={`fixed bottom-24 right-4 md:bottom-28 md:right-6 w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 transition-all duration-300 transform z-50 ${
+        className={`fixed bottom-28 right-4 md:bottom-32 md:right-6 w-[calc(100vw-2rem)] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 transition-all duration-300 transform z-50 ${
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
-        style={{ height: '550px', maxHeight: 'calc(100vh - 120px)' }}
+        style={{ height: '600px', maxHeight: 'calc(100vh - 120px)' }}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -178,14 +178,14 @@ export default function ChatbotWidget() {
                     dangerouslySetInnerHTML={{ __html: formatChatMessage(message.content) }}
                   />
                   
-                  {/* Vehicle Links */}
+                  {/* Vehicle/Battery Links as Buttons */}
                   {message.links && message.links.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {message.links.map((link, idx) => (
                         <button
                           key={idx}
                           onClick={() => handleLinkClick(link.url)}
-                          className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-200 flex items-center gap-3 group shadow-sm hover:shadow-md"
+                          className="w-full text-left px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-xl transition-all duration-200 flex items-center gap-3 group shadow-sm hover:shadow-md"
                         >
                           <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

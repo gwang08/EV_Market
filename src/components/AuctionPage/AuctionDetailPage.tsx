@@ -23,7 +23,6 @@ import {
   getTimeRemaining,
   placeBid,
   payDeposit,
-  isAuthenticated,
   getAuctionDetail,
 } from "@/services";
 import { useI18nContext } from "@/providers/I18nProvider";
@@ -152,6 +151,13 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           setCurrentBid(highestBid);
           bidAmountInput.setValue(String(highestBid + auctionData.bidIncrement));
           setHasDeposit(hasDeposit);
+          
+          console.log('✅ Auction data loaded:', {
+            id: auctionId,
+            type: listingType,
+            title: auctionData.title,
+            currentBid: highestBid
+          });
         }
       } catch (error) {
         showError(
@@ -190,36 +196,41 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
 
   // Realtime bidding subscription
   useEffect(() => {
-    if (!auction) return;
-
-    console.log('🔌 Setting up realtime subscription for auction:', auctionId, 'Type:', auction.listingType);
-
-    // Create a channel for this specific auction (theo hướng dẫn backend)
-    const channel = supabase.channel(`auction-room-${auctionId}`);
-
-    // Determine which field to filter by
-    const filterColumn = auction.listingType === 'VEHICLE' ? 'vehicleId' : 'batteryId';
-    const filterString = `${filterColumn}=eq.${auctionId}`;
+    console.log('🔄 Realtime effect triggered. Auction:', auction ? 'loaded' : 'not loaded', 'ID:', auctionId);
     
-    console.log('📡 Subscribing with filter:', filterString);
+    if (!auction) {
+      console.log('⏸️ Auction not loaded yet, skipping subscription');
+      return;
+    }
 
-    channel
+    console.log('🔌 Setting up realtime subscription for auction:', auctionId);
+    console.log('📊 Auction type:', auction.listingType);
+
+    // Save listing type for client-side filtering
+    const listingType = auction.listingType;
+    
+    console.log('🔍 Subscribing to all Bid events - client-side filtering');
+
+    // Create a channel with server-side filtering
+    const channel = supabase
+      .channel(`auction-${auctionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'Bid',
-          filter: filterString
         },
         (payload) => {
-          console.log('🎉 New bid received:', payload.new);
+          console.log('� Received payload:', payload);
+          
+          const newBid = payload.new as any;
           
           // Update current bid with the new bid amount
-          const newBid = payload.new as any;
           if (newBid && typeof newBid.amount === 'number') {
             const newBidAmount = newBid.amount;
-            console.log('💰 Updating current bid to:', newBidAmount);
+            
+            console.log('💰 New bid amount:', newBidAmount);
             
             setCurrentBid(newBidAmount);
             
@@ -227,14 +238,13 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
             setIsNewBidFlash(true);
             setTimeout(() => setIsNewBidFlash(false), 2000);
             
-            // Update the bid input to next increment
-            if (auction.bidIncrement) {
-              bidAmountInput.setValue(String(newBidAmount + auction.bidIncrement));
-            }
-            
-            // Update auction bids array if exists
+            // Update the bid input to next increment using the current auction data
             setAuction(prev => {
               if (!prev) return prev;
+              
+              // Update bid input
+              const nextBidAmount = newBidAmount + (prev.bidIncrement || 0);
+              bidAmountInput.setValue(String(nextBidAmount));
               
               // Create a properly typed Bid object
               const bidEntry: any = {
@@ -257,30 +267,26 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
         }
       )
       .subscribe((status) => {
-        console.log('📊 Subscription status:', status);
+        console.log('📡 Subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to realtime updates!');
+          console.log('✅ Successfully subscribed to Bid table (client-side filtering)');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Channel error - check Supabase Replication settings');
         } else if (status === 'TIMED_OUT') {
           console.error('⏱️ Subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('🔒 Channel closed');
         }
       });
 
-    // Cleanup: unsubscribe when component unmounts or auction changes (theo hướng dẫn backend)
+    // Cleanup: unsubscribe when component unmounts or auction changes
     return () => {
-      console.log('🔌 Cleaning up realtime subscription');
+      console.log('🧹 Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [auction, auctionId, bidAmountInput]);
+  }, [auctionId, auction?.listingType]); // Depend on auctionId and listingType
 
   const handlePayDeposit = async () => {
-    if (!isAuthenticated()) {
-      showError(t("auctions.errors.loginRequired", "Vui lòng đăng nhập để đặt cọc"));
-      router.push("/login");
-      return;
-    }
-
     if (!auction || !auction.listingType) return;
 
     try {
@@ -291,7 +297,6 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
         { amount: auction.depositAmount }
       );
       
-      console.log('✅ Deposit Success:', result);
       
       // If no error thrown, deposit was successful
       setHasDeposit(true);
@@ -305,16 +310,13 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
       });
       
       const errorMessage = error instanceof Error ? error.message : t("auctions.errors.depositFailed", "Đặt cọc thất bại");
-      console.log('📝 Error message extracted:', errorMessage);
       
       const localizedError = getLocalizedErrorMessage(errorMessage, t, 'deposit');
-      console.log('🌍 Localized error:', localizedError);
       
       // Check for insufficient balance to show wallet link
       if (errorMessage.toLowerCase().includes('insufficient') || 
           errorMessage.toLowerCase().includes('not enough') ||
           errorMessage.toLowerCase().includes('balance')) {
-        console.log('💰 Showing insufficient balance error with wallet link');
         showError(
           localizedError,
           6000,
@@ -322,7 +324,6 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
           () => router.push('/wallet')
         );
       } else {
-        console.log('⚠️ Showing general error');
         showError(localizedError);
       }
     } finally {
@@ -331,12 +332,6 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
   };
 
   const handlePlaceBid = async () => {
-    if (!isAuthenticated()) {
-      showError(t("auctions.errors.loginRequired", "Vui lòng đăng nhập để đấu giá"));
-      router.push("/login");
-      return;
-    }
-
     if (!hasDeposit) {
       showError(t("auctions.errors.depositRequiredError", "Bạn phải đặt cọc trước khi đấu giá"));
       return;
@@ -397,11 +392,11 @@ export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps)
    
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Images & Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Images & Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Image Gallery */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
               <div className="relative aspect-[16/10] bg-slate-100">
                 {auction.images && auction.images.length > 0 ? (
                   <Image
