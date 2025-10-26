@@ -160,5 +160,5 @@ export function validateField(
   };
   
   export const useApiValidation = () => ({
-    setApiErrors: (errors: Record<string, string>) => console.log('API Errors:', errors)
+    setApiErrors: (errors: Record<string, string>) =>  errors
   });
