@@ -51,86 +51,104 @@ export const sendChatMessage = async (question: string): Promise<ChatbotResponse
 // Parse vehicle links from response
 export const parseVehicleLinks = (answer: string): Array<{ url: string; title: string }> => {
   const links: Array<{ url: string; title: string }> = []
+  const processedIds = new Set<string>()
   
-  // Pattern 1: Markdown format with bullets: * **Xe điện 2019 Rivian...** với giá... [url]
-  const markdownLinkRegex = /\*\s+\*\*(.+?)\*\*.*?https?:\/\/[^\s]+\/vehicle\/([\w-]+)/g
+  // Find all URLs with their IDs
+  const urlPattern = /https?:\/\/[^\s\)]+\/(vehicle|battery)\/([\w-]+)/g
   let match
   
-  while ((match = markdownLinkRegex.exec(answer)) !== null) {
-    links.push({
-      title: match[1].trim(),
-      url: `/vehicle/${match[2]}`
-    })
-  }
-  
-  // Pattern 2: Markdown format for batteries: * **Pin EV...** với giá... [url]
-  const batteryMarkdownRegex = /\*\s+\*\*(.+?)\*\*.*?https?:\/\/[^\s]+\/battery\/([\w-]+)/g
-  while ((match = batteryMarkdownRegex.exec(answer)) !== null) {
-    links.push({
-      title: match[1].trim(),
-      url: `/battery/${match[2]}`
-    })
-  }
-  
-  // Pattern 3: Bold text followed by URL: **BMW 320i** ... https://...
-  const boldWithUrlRegex = /\*\*([^*]+)\*\*[\s\S]{0,200}?https?:\/\/[^\s]+\/vehicle\/([\w-]+)/g
-  
-  while ((match = boldWithUrlRegex.exec(answer)) !== null) {
-    const title = match[1].trim()
+  while ((match = urlPattern.exec(answer)) !== null) {
+    const type = match[1] as 'vehicle' | 'battery'
     const id = match[2]
     
-    // Check if this link is not already added
-    const alreadyExists = links.some(link => link.url === `/vehicle/${id}`)
-    if (!alreadyExists) {
-      links.push({
-        title: title,
-        url: `/vehicle/${id}`
-      })
-    }
-  }
-  
-  // Pattern 4: Bold battery text followed by URL
-  const boldBatteryWithUrlRegex = /\*\*([^*]+(?:pin|battery|Pin|Battery)[^*]*)\*\*[\s\S]{0,200}?https?:\/\/[^\s]+\/battery\/([\w-]+)/gi
-  
-  while ((match = boldBatteryWithUrlRegex.exec(answer)) !== null) {
-    const title = match[1].trim()
-    const id = match[2]
+    if (processedIds.has(id)) continue
     
-    const alreadyExists = links.some(link => link.url === `/battery/${id}`)
-    if (!alreadyExists) {
-      links.push({
-        title: title,
-        url: `/battery/${id}`
-      })
+    // Get text before this URL (up to 300 chars)
+    const textBefore = answer.substring(Math.max(0, match.index - 300), match.index)
+    
+    let title = type === 'vehicle' ? 'Xem chi tiết xe' : 'Xem chi tiết pin'
+    
+    // Strategy: Try multiple patterns in order of specificity
+    
+    // 1. Direct colon format: "* ProductName: https://" or "* **ProductName:** text https://"
+    const colonMatch = textBefore.match(/\*\s+(?:\*\*)?([^*:\n]+?)(?:\*\*)?:\s*[^:]*?$/i)
+    if (colonMatch) {
+      const candidate = colonMatch[1].trim()
+      if (isValidProductName(candidate)) {
+        title = candidate
+        processedIds.add(id)
+        links.push({ title, url: `/${type}/${id}` })
+        continue
+      }
     }
-  }
-  
-  // Pattern 5: Fallback - Any vehicle/battery URLs not caught above
-  const fallbackVehicleRegex = /https?:\/\/[^\s]+\/vehicle\/([\w-]+)/g
-  while ((match = fallbackVehicleRegex.exec(answer)) !== null) {
-    const id = match[1]
-    const alreadyExists = links.some(link => link.url === `/vehicle/${id}`)
-    if (!alreadyExists) {
-      links.push({
-        title: 'Xem chi tiết sản phẩm',
-        url: `/vehicle/${id}`
-      })
+    
+    // 2. Markdown link: [text](url)
+    const mdLinkMatch = answer.substring(match.index - 100, match.index + 100).match(/\[([^\]]+)\]\([^)]+\)/)
+    if (mdLinkMatch) {
+      const candidate = mdLinkMatch[1].trim()
+      if (isValidProductName(candidate)) {
+        title = candidate
+        processedIds.add(id)
+        links.push({ title, url: `/${type}/${id}` })
+        continue
+      }
     }
-  }
-  
-  const fallbackBatteryRegex = /https?:\/\/[^\s]+\/battery\/([\w-]+)/g
-  while ((match = fallbackBatteryRegex.exec(answer)) !== null) {
-    const id = match[1]
-    const alreadyExists = links.some(link => link.url === `/battery/${id}`)
-    if (!alreadyExists) {
-      links.push({
-        title: 'Xem chi tiết pin',
-        url: `/battery/${id}`
-      })
+    
+    // 3. Find ALL bold text in context, filter and pick best one
+    const boldMatches: string[] = []
+    const boldPattern = /\*\*([^*]+?)\*\*/g
+    let boldMatch
+    
+    while ((boldMatch = boldPattern.exec(textBefore)) !== null) {
+      boldMatches.push(boldMatch[1].trim())
     }
+    
+    if (boldMatches.length > 0) {
+      // Filter to get valid product names only
+      const validNames = boldMatches.filter(isValidProductName)
+      
+      if (validNames.length > 0) {
+        // Pick the LAST valid name (closest to URL)
+        title = validNames[validNames.length - 1]
+      }
+    }
+    
+    processedIds.add(id)
+    links.push({ title, url: `/${type}/${id}` })
   }
 
   return links
+}
+
+// Helper: Check if text looks like a valid product name (not a price or gibberish)
+function isValidProductName(text: string): boolean {
+  if (!text || text.length < 3 || text.length > 60) return false
+  
+  // Must contain at least one letter
+  if (!/[a-zA-Z]/.test(text)) return false
+  
+  // Exclude prices
+  if (/^\d+[,.]?\d*\s*(VND|USD|đ|vnđ)$/i.test(text)) return false
+  
+  // Exclude if it's mostly numbers
+  const numberCount = (text.match(/\d/g) || []).length
+  if (numberCount > text.length * 0.7) return false
+  
+  // Exclude common filler phrases
+  const fillerPhrases = [
+    'với giá', 'giá', 'vnd', 'tại đây', 'xem chi tiết', 'thông tin', 
+    'mời bạn', 'ghé thăm', 'bạn có thể', 'để biết', 'rất ấn tượng',
+    'mẫu xe này', 'chiếc xe', 'sản phẩm'
+  ]
+  
+  const lowerText = text.toLowerCase()
+  for (const phrase of fillerPhrases) {
+    if (lowerText === phrase || lowerText.includes(phrase) && lowerText.length < 30) {
+      return false
+    }
+  }
+  
+  return true
 }
 
 // Format markdown-style text to HTML
