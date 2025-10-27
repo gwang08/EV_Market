@@ -18,6 +18,13 @@ export {
   refreshAccessToken,
   ensureValidToken,
   
+  // User info helpers
+  storeUserInfo,
+  getUserInfo,
+  getUserRole,
+  removeUserInfo,
+  decodeJWTToken,
+  
   // Google Auth functions
   loginWithGoogle,
   handleGoogleAuthSuccess,
@@ -81,6 +88,27 @@ export {
   getPaymentGatewayName
 } from './Transaction'
 
+// Export Auction services
+export {
+  getLiveAuctions,
+  getAuctionDetail,
+  placeBid,
+  payDeposit,
+  formatAuctionPrice,
+  getTimeRemaining,
+  requestAuction,
+  createAuction
+} from './Auction'
+
+// Export Admin services
+export {
+  getAuctionRequests,
+  reviewAuctionRequest,
+  approveListing,
+  getAdminStats,
+  getPendingListings
+} from './Admin'
+
 // Export types
 export type {
   LoginRequest,
@@ -136,3 +164,22 @@ export type {
   TransactionBattery,
   TransactionsResponse
 } from './Transaction'
+
+export type {
+  LiveAuction,
+  LiveAuctionsResponse,
+  Bid,
+  BidResponse,
+  Deposit,
+  AuctionDepositResponse,
+  PlaceBidRequest,
+  PayDepositRequest,
+  AuctionSeller,
+  AuctionSpecifications
+} from '../types/auction'
+
+export type {
+  RequestAuctionData,
+  RequestAuctionResponse,
+  CreateAuctionResponse
+} from './Auction'

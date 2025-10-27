@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { getAuthToken } from "@/services";
-import { motion } from "framer-motion";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_ENDPOINT ||
+  "https://beevmarket-production.up.railway.app/api/v1";
 
 interface Transaction {
   id: string;
@@ -51,16 +54,13 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
           throw new Error("No authentication token found - please login again");
         }
 
-        const response = await fetch(
-          "https://evmarket-api-staging-backup.onrender.com/api/v1/wallet/history",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/wallet/history`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -327,7 +327,9 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         {tx.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{formatDate(tx.createdAt)}</td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {formatDate(tx.createdAt)}
+                    </td>
                     <td className="px-6 py-4 text-slate-500">
                       {tx.description}
                     </td>

@@ -18,17 +18,13 @@ export default function AuthSuccess() {
         // Get access token from query parameters
         const accessToken = searchParams.get('accessToken')
 
-        console.log('🔍 Google Auth Success - URL params:', {
-          accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : null,
-          fullUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
-          allParams: Object.fromEntries(searchParams.entries())
-        })
+     
 
         if (accessToken) {
-          console.log('✅ Google Auth - Received access token')
           
-          // Store the access token (default 1 hour expiration)
-          storeAuthToken(accessToken, 1)
+          // Store the access token using JWT's own expiration
+          storeAuthToken(accessToken)
+          console.log('🔐 Google Auth - using JWT expiration')
           
           setStatus('success')
           
@@ -37,8 +33,6 @@ export default function AuthSuccess() {
             router.replace('/')
           }, 2000)
         } else {
-          console.error('❌ Google Auth - No access token found in URL')
-          console.log('Available query params:', Object.fromEntries(searchParams.entries()))
           
           setErrorMessage(t('auth.google.noTokenError', 'Không tìm thấy token xác thực trong URL'))
           setStatus('error')

@@ -4,8 +4,8 @@ import { useToast as useToastHook } from '../hooks/useToast'
 import { Toast, ToastProps } from '../components/common/Toast'
 
 interface ToastContextType {
-  success: (message: string, duration?: number) => void
-  error: (message: string, duration?: number) => void
+  success: (message: string, duration?: number, actionLabel?: string, onAction?: () => void) => void
+  error: (message: string, duration?: number, actionLabel?: string, onAction?: () => void) => void
   info: (message: string, duration?: number) => void
   warning: (message: string, duration?: number) => void
 }

@@ -1,0 +1,840 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  Clock,
+  Zap,
+  Battery,
+  Car,
+  ShieldCheck,
+  User,
+  Gavel,
+  Wallet,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  ArrowLeft,
+  Info
+} from "lucide-react";
+import { LiveAuction } from "@/types/auction";
+import {
+  formatAuctionPrice,
+  getTimeRemaining,
+  placeBid,
+  payDeposit,
+  getAuctionDetail,
+} from "@/services";
+import { useI18nContext } from "@/providers/I18nProvider";
+import { useToast } from "@/providers/ToastProvider";
+import { useCurrencyInput } from "@/hooks/useCurrencyInput";
+import { supabase } from "@/lib/supabase";
+
+interface AuctionDetailPageProps {
+  auctionId: string;
+}
+
+// Helper function to map server errors to localized messages
+const getLocalizedErrorMessage = (serverMessage: string, t: any, context: 'deposit' | 'bid'): string => {
+  const lowerMessage = serverMessage.toLowerCase();
+  
+  // Insufficient balance
+  if (lowerMessage.includes('insufficient') || lowerMessage.includes('not enough') || lowerMessage.includes('balance')) {
+    return t("auctions.errors.insufficientBalance", "Số dư không đủ để thực hiện giao dịch");
+  }
+  
+  // Deposit errors
+  if (context === 'deposit') {
+    if (lowerMessage.includes('already') && lowerMessage.includes('deposit')) {
+      return t("auctions.errors.alreadyDeposited", "Bạn đã đặt cọc cho phiên đấu giá này");
+    }
+    if (lowerMessage.includes('auction') && (lowerMessage.includes('ended') || lowerMessage.includes('expired'))) {
+      return t("auctions.errors.auctionAlreadyEnded", "Phiên đấu giá đã kết thúc");
+    }
+    if (lowerMessage.includes('not') && lowerMessage.includes('start')) {
+      return t("auctions.errors.auctionNotStarted", "Phiên đấu giá chưa bắt đầu");
+    }
+  }
+  
+  // Bid errors
+  if (context === 'bid') {
+    if (lowerMessage.includes('must pay') || (lowerMessage.includes('deposit') && lowerMessage.includes('before'))) {
+      return t("auctions.errors.depositRequiredError", "Bạn phải đặt cọc trước khi đấu giá");
+    }
+    if (lowerMessage.includes('cannot bid') && lowerMessage.includes('own')) {
+      return t("auctions.errors.ownAuctionError", "Bạn không thể đấu giá sản phẩm của chính mình");
+    }
+    if (lowerMessage.includes('already') && lowerMessage.includes('highest')) {
+      return t("auctions.errors.alreadyHighestBidder", "Bạn đã là người đặt giá cao nhất");
+    }
+    if (lowerMessage.includes('must be at least') || lowerMessage.includes('minimum bid')) {
+      return t("auctions.errors.bidTooLow", "Giá đấu thấp hơn mức tối thiểu");
+    }
+  }
+  
+  // Network/Server errors
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('timeout')) {
+    return t("auctions.errors.networkError", "Lỗi kết nối. Vui lòng thử lại");
+  }
+  
+  if (lowerMessage.includes('unauthorized') || lowerMessage.includes('authentication')) {
+    return t("auctions.errors.unauthorized", "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại");
+  }
+  
+  // Default error
+  return t(context === 'deposit' ? "auctions.errors.depositFailed" : "auctions.errors.bidFailed", 
+    context === 'deposit' ? "Đặt cọc thất bại" : "Đấu giá thất bại");
+};
+
+export default function AuctionDetailPage({ auctionId }: AuctionDetailPageProps) {
+  const { t } = useI18nContext();
+  const router = useRouter();
+  const { success: showSuccess, error: showError } = useToast();
+  
+  const [auction, setAuction] = useState<LiveAuction | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0, isExpired: false });
+  
+  // Bidding state with currency formatting
+  const bidAmountInput = useCurrencyInput("");
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
+  const [isPayingDeposit, setIsPayingDeposit] = useState(false);
+  const [hasDeposit, setHasDeposit] = useState(false);
+  const [currentBid, setCurrentBid] = useState(0);
+  const [isNewBidFlash, setIsNewBidFlash] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<"details" | "specs" | "bids">("details");
+
+  // Check if auction has started
+  const isAuctionStarted = () => {
+    if (!auction?.auctionStartsAt) return true; // Default to true if no start time
+    return new Date() >= new Date(auction.auctionStartsAt);
+  };
+
+  useEffect(() => {
+    const fetchAuctionDetail = async () => {
+      try {
+        setLoading(true);
+        // Try VEHICLE first, then BATTERY if fails
+        let data;
+        let listingType: 'VEHICLE' | 'BATTERY' = 'VEHICLE';
+        try {
+          data = await getAuctionDetail('VEHICLE', auctionId);
+          listingType = 'VEHICLE';
+        } catch (error) {
+          data = await getAuctionDetail('BATTERY', auctionId);
+          listingType = 'BATTERY';
+        }
+        
+        if (data && data.data) {
+          const auctionData = data.data;
+          
+      
+          
+          // Add listingType to auction data
+          auctionData.listingType = listingType;
+          
+          // Calculate current bid from bids array
+          const highestBid = auctionData.bids && auctionData.bids.length > 0
+            ? Math.max(...auctionData.bids.map((bid: any) => bid.amount))
+            : auctionData.startingPrice;
+          
+          auctionData.currentBid = highestBid;
+          
+          // Check if user has already paid deposit from API response
+          const hasDeposit = auctionData.hasUserDeposit === true || 
+                            (auctionData.userDeposit?.status === 'PAID');
+          
+        
+          
+          setAuction(auctionData);
+          setCurrentBid(highestBid);
+          bidAmountInput.setValue(String(highestBid + auctionData.bidIncrement));
+          setHasDeposit(hasDeposit);
+          
+          console.log('✅ Auction data loaded:', {
+            id: auctionId,
+            type: listingType,
+            title: auctionData.title,
+            currentBid: highestBid
+          });
+        }
+      } catch (error) {
+        showError(
+          error instanceof Error ? error.message : 'Failed to load auction details'
+        );
+        console.error('Failed to fetch auction:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAuctionDetail();
+  }, [auctionId, showError]);
+
+  useEffect(() => {
+    if (!auction) return;
+    
+    const timer = setInterval(() => {
+      const now = new Date();
+      const startTime = new Date(auction.auctionStartsAt);
+      const endTime = new Date(auction.auctionEndsAt);
+      
+      // If auction hasn't started yet, countdown to start time
+      if (now < startTime) {
+        const remaining = getTimeRemaining(auction.auctionStartsAt);
+        setTimeLeft(remaining);
+      } else {
+        // If auction has started, countdown to end time
+        const remaining = getTimeRemaining(auction.auctionEndsAt);
+        setTimeLeft(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [auction]);
+
+  // Realtime bidding subscription
+  useEffect(() => {
+    console.log('🔄 Realtime effect triggered. Auction:', auction ? 'loaded' : 'not loaded', 'ID:', auctionId);
+    
+    if (!auction) {
+      console.log('⏸️ Auction not loaded yet, skipping subscription');
+      return;
+    }
+
+    console.log('🔌 Setting up realtime subscription for auction:', auctionId);
+    console.log('📊 Auction type:', auction.listingType);
+
+    // Save listing type for client-side filtering
+    const listingType = auction.listingType;
+    
+    console.log('🔍 Subscribing to all Bid events - client-side filtering');
+
+    // Create a channel with server-side filtering
+    const channel = supabase
+      .channel(`auction-${auctionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Bid',
+        },
+        (payload) => {
+          console.log('� Received payload:', payload);
+          
+          const newBid = payload.new as any;
+          
+          // Update current bid with the new bid amount
+          if (newBid && typeof newBid.amount === 'number') {
+            const newBidAmount = newBid.amount;
+            
+            console.log('💰 New bid amount:', newBidAmount);
+            
+            setCurrentBid(newBidAmount);
+            
+            // Trigger flash animation
+            setIsNewBidFlash(true);
+            setTimeout(() => setIsNewBidFlash(false), 2000);
+            
+            // Update the bid input to next increment using the current auction data
+            setAuction(prev => {
+              if (!prev) return prev;
+              
+              // Update bid input
+              const nextBidAmount = newBidAmount + (prev.bidIncrement || 0);
+              bidAmountInput.setValue(String(nextBidAmount));
+              
+              // Create a properly typed Bid object
+              const bidEntry: any = {
+                id: newBid.id || '',
+                amount: newBid.amount,
+                createdAt: newBid.createdAt || new Date().toISOString(),
+                bidderId: newBid.bidderId || '',
+                vehicleId: newBid.vehicleId || null,
+                batteryId: newBid.batteryId || null,
+                bidder: newBid.bidder
+              };
+              
+              return {
+                ...prev,
+                currentBid: newBidAmount,
+                bids: [...(prev.bids || []), bidEntry]
+              };
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to Bid table (client-side filtering)');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error - check Supabase Replication settings');
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏱️ Subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('🔒 Channel closed');
+        }
+      });
+
+    // Cleanup: unsubscribe when component unmounts or auction changes
+    return () => {
+      console.log('🧹 Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [auctionId, auction?.listingType]); // Depend on auctionId and listingType
+
+  const handlePayDeposit = async () => {
+    if (!auction || !auction.listingType) return;
+
+    try {
+      setIsPayingDeposit(true);
+      const result = await payDeposit(
+        auction.listingType,
+        auction.id,
+        { amount: auction.depositAmount }
+      );
+      
+      
+      // If no error thrown, deposit was successful
+      setHasDeposit(true);
+      showSuccess(t("auctions.depositSuccess", "Đặt cọc thành công!"));
+    } catch (error) {
+      console.error('❌ Deposit Error Details:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown',
+        type: typeof error,
+        errorObject: error
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : t("auctions.errors.depositFailed", "Đặt cọc thất bại");
+      
+      const localizedError = getLocalizedErrorMessage(errorMessage, t, 'deposit');
+      
+      // Check for insufficient balance to show wallet link
+      if (errorMessage.toLowerCase().includes('insufficient') || 
+          errorMessage.toLowerCase().includes('not enough') ||
+          errorMessage.toLowerCase().includes('balance')) {
+        showError(
+          localizedError,
+          6000,
+          t("auctions.errors.goToWallet", "Nạp tiền"),
+          () => router.push('/wallet')
+        );
+      } else {
+        showError(localizedError);
+      }
+    } finally {
+      setIsPayingDeposit(false);
+    }
+  };
+
+  const handlePlaceBid = async () => {
+    if (!hasDeposit) {
+      showError(t("auctions.errors.depositRequiredError", "Bạn phải đặt cọc trước khi đấu giá"));
+      return;
+    }
+
+    if (!auction || !auction.listingType) return;
+
+    const bidValue = Number(bidAmountInput.rawValue);
+    if (bidValue < currentBid + auction.bidIncrement) {
+      showError(t("auctions.errors.bidTooLow", "Giá đấu thấp hơn mức tối thiểu").replace('{amount}', formatAuctionPrice(currentBid + auction.bidIncrement)));
+      return;
+    }
+
+    try {
+      setIsPlacingBid(true);
+      await placeBid(auction.listingType, auction.id, { amount: bidValue });
+      
+      // If no error thrown, bid was successful
+      setCurrentBid(bidValue);
+      bidAmountInput.setValue(String(bidValue + auction.bidIncrement));
+      showSuccess(t("auctions.bidPlaced", "Đặt giá thành công!"));
+    } catch (error) {
+      console.error('❌ Bid Error:', error);
+      const errorMessage = error instanceof Error ? error.message : t("auctions.errors.bidFailed", "Đấu giá thất bại");
+      const localizedError = getLocalizedErrorMessage(errorMessage, t, 'bid');
+      
+      // Check for insufficient balance to show wallet link
+      if (errorMessage.toLowerCase().includes('insufficient') || 
+          errorMessage.toLowerCase().includes('not enough') || 
+          errorMessage.toLowerCase().includes('balance')) {
+        showError(
+          localizedError,
+          6000,
+          t("auctions.errors.goToWallet", "Nạp tiền"),
+          () => router.push('/wallet')
+        );
+      } else {
+        showError(localizedError);
+      }
+    } finally {
+      setIsPlacingBid(false);
+    }
+  };
+
+  if (loading || !auction) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  const isVehicle = auction.listingType === "VEHICLE";
+  const Icon = isVehicle ? Car : Battery;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white mt-40">
+   
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Images & Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Image Gallery */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+              <div className="relative aspect-[16/10] bg-slate-100">
+                {auction.images && auction.images.length > 0 ? (
+                  <Image
+                    src={auction.images[0]}
+                    alt={auction.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    priority
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Icon className="w-24 h-24 text-slate-300" />
+                  </div>
+                )}
+
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  <span className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm font-bold rounded-full shadow-lg flex items-center gap-2 backdrop-blur-sm">
+                    <Zap className="w-4 h-4" fill="currentColor" />
+                    LIVE AUCTION
+                  </span>
+                  {auction.isVerified && (
+                    <span className="px-4 py-2 bg-blue-600/90 backdrop-blur-sm text-white text-sm font-semibold rounded-full shadow-lg flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4" />
+                      {t("common.verified")}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Thumbnail Gallery */}
+              {auction.images && auction.images.length > 1 && (
+                <div className="p-4 grid grid-cols-4 gap-3">
+                  {auction.images.slice(0, 4).map((img, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-500 cursor-pointer transition-all">
+                      <Image src={img} alt={`View ${idx + 1}`} fill className="object-cover" sizes="150px" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Title & Quick Info */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-sm font-semibold rounded-full">
+                      {auction.brand}
+                    </span>
+                    {auction.year && (
+                      <span className="px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
+                        {auction.year}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+                    {auction.title}
+                  </h1>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {auction.mileage && (
+                  <div className="p-3 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-1">Mileage</p>
+                    <p className="text-sm font-bold text-slate-900">{auction.mileage.toLocaleString()} km</p>
+                  </div>
+                )}
+                {auction.capacity && (
+                  <div className="p-3 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-1">Battery</p>
+                    <p className="text-sm font-bold text-slate-900">{auction.capacity} kWh</p>
+                  </div>
+                )}
+                {auction.health && (
+                  <div className="p-3 bg-slate-50 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-1">Health</p>
+                    <p className="text-sm font-bold text-green-600">{auction.health}%</p>
+                  </div>
+                )}
+                <div className="p-3 bg-slate-50 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">Type</p>
+                  <p className="text-sm font-bold text-slate-900">{isVehicle ? "Vehicle" : "Battery"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="border-b border-slate-200">
+                <div className="flex">
+                  {[
+                    { key: "details" as const, label: t("auctions.auctionDetails", "Details") },
+                    { key: "specs" as const, label: t("auctions.specifications", "Specifications") },
+                    { key: "bids" as const, label: t("auctions.biddingHistory", "Bidding History") },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === tab.key
+                          ? "border-blue-600 text-blue-600"
+                          : "border-transparent text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6">
+                {activeTab === "details" && (
+                  <div className="prose max-w-none">
+                    <p className="text-slate-700 leading-relaxed whitespace-pre-line">
+                      {auction.description}
+                    </p>
+                  </div>
+                )}
+
+                {activeTab === "specs" && auction.specifications && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(auction.specifications).map(([key, value]) => {
+                      // Handle nested objects (like warranty, dimensions, etc.)
+                      const displayValue = typeof value === 'object' && value !== null
+                        ? Object.entries(value).map(([k, v]) => `${k}: ${v}`).join(', ')
+                        : String(value);
+                      
+                      return (
+                        <div key={key} className="flex items-start justify-between p-4 bg-slate-50 rounded-xl">
+                          <span className="text-sm text-slate-600 capitalize font-medium">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <span className="text-sm text-slate-900 text-right max-w-[60%]">
+                            {displayValue}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {activeTab === "bids" && (
+                  <div className="space-y-3">
+                    {auction.bids && auction.bids.length > 0 ? (
+                      <>
+                        <p className="text-sm text-slate-500 mb-4">
+                          {auction.bids.length} {t(auction.bids.length === 1 ? "auctions.bidPlacedSingular" : "auctions.bidsPlaced", auction.bids.length === 1 ? "bid placed" : "bids placed")}
+                        </p>
+                        {auction.bids
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((bid, idx) => (
+                            <div key={bid.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                  idx === 0 ? 'bg-green-100' : 'bg-slate-200'
+                                }`}>
+                                  {idx === 0 ? (
+                                    <CheckCircle className="w-5 h-5 text-green-600" />
+                                  ) : (
+                                    <User className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">
+                                    {bid.bidder?.name || `${t("auctions.bidder", "Bidder")} ${bid.bidderId.slice(0, 8)}...`}
+                                    {idx === 0 && <span className="ml-2 text-green-600 font-bold">• {t("auctions.highestBid", "Highest Bid")}</span>}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {new Date(bid.createdAt).toLocaleString('vi-VN', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className={`text-lg font-bold ${idx === 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                                {formatAuctionPrice(bid.amount)}
+                              </p>
+                            </div>
+                          ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Gavel className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 text-sm">{t("auctions.noBidsYet", "No bids placed yet. Be the first to bid!")}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Seller Info */}
+            {auction.seller && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 mb-4">{t("vehicleDetail.sellerInfo")}</h3>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">
+                    {auction.seller.avatar ? (
+                      <Image
+                        src={auction.seller.avatar}
+                        alt={auction.seller.name}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-500 text-xl font-bold">
+                        {auction.seller.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-lg font-bold text-slate-900">{auction.seller.name}</p>
+                    <p className="text-sm text-slate-500">{t("vehicleDetail.sellerInfo", "Verified Seller")}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Bidding Panel */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 space-y-4">
+              {/* Countdown Timer */}
+              <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white shadow-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-5 h-5" />
+                  <span className="text-sm font-medium">
+                    {!isAuctionStarted() 
+                      ? t("auctions.timeUntilStart", "Thời gian đến khi bắt đầu")
+                      : t("auctions.timeRemaining")
+                    }
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center mb-4">
+                  {[
+                    { value: timeLeft.days, label: "Days" },
+                    { value: timeLeft.hours, label: "Hrs" },
+                    { value: timeLeft.minutes, label: "Mins" },
+                    { value: timeLeft.seconds, label: "Secs" },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                      <div className="text-2xl font-bold">{String(item.value).padStart(2, "0")}</div>
+                      <div className="text-xs opacity-80">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Auction Start Time */}
+                <div className="pt-3 border-t border-white/20 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">
+                      {!isAuctionStarted() ? t("auctions.willStart", "Sẽ bắt đầu") : t("auctions.started", "Đã bắt đầu")}:
+                    </span>
+                    <span className="font-semibold">
+                      {new Date(auction.auctionStartsAt).toLocaleString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="opacity-80">
+                      {!isAuctionStarted() ? t("auctions.willEnd", "Sẽ kết thúc") : t("auctions.ends", "Kết thúc")}:
+                    </span>
+                    <span className="font-semibold">
+                      {new Date(auction.auctionEndsAt).toLocaleString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bidding Card */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div className={`transition-all duration-300 ${isNewBidFlash ? 'bg-green-50 -m-6 p-6 rounded-2xl' : ''}`}>
+                  <p className="text-sm text-slate-500 mb-1">{t("auctions.currentBid")}</p>
+                  <p className={`text-3xl font-bold transition-all duration-300 ${isNewBidFlash ? 'text-green-600 scale-110' : 'text-slate-900'}`}>
+                    {formatAuctionPrice(currentBid)}
+                  </p>
+                  {isNewBidFlash && (
+                    <p className="text-xs text-green-600 mt-1 animate-pulse">
+                      🔥 {t("auctions.newBid", "New bid placed!")}
+                    </p>
+                  )}
+                </div>
+
+                {timeLeft.isExpired ? (
+                  /* Auction Ended */
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {t("auctions.auctionEnded")}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {t("auctions.auctionEndedDesc")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : !hasDeposit ? (
+                  <>
+                    {!isAuctionStarted() ? (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-yellow-900 mb-1">
+                              {t("auctions.auctionNotStarted")}
+                            </p>
+                            <p className="text-xs text-yellow-700">
+                              {t("auctions.auctionNotStartedDesc")}{" "}
+                              {new Date(auction.auctionStartsAt).toLocaleString('vi-VN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-900 mb-1">{t("auctions.depositRequired")}</p>
+                            <p className="text-xs text-blue-700">
+                              {t("auctions.depositMessagePart1", "Pay a deposit of")} {formatAuctionPrice(auction.depositAmount)} {t("auctions.depositMessagePart2", "to start bidding")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handlePayDeposit}
+                      disabled={isPayingDeposit || !isAuctionStarted()}
+                      className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isPayingDeposit ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          {t("wallet.processing")}
+                        </>
+                      ) : !isAuctionStarted() ? (
+                        <>
+                          <Clock className="w-5 h-5" />
+                          {t("auctions.notStartedYet")}
+                        </>
+                      ) : (
+                        <>
+                          <Wallet className="w-5 h-5" />
+                          {t("auctions.payDeposit")} - {formatAuctionPrice(auction.depositAmount)}
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="text-sm font-medium">{t("auctions.depositPaid")}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {t("auctions.bidAmount")}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={bidAmountInput.displayValue}
+                          onChange={(e) => bidAmountInput.handleChange(e.target.value)}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-semibold"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">VND</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        {t("auctions.minimumBid")}: {formatAuctionPrice(currentBid + auction.bidIncrement)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handlePlaceBid}
+                      disabled={isPlacingBid || Number(bidAmountInput.rawValue) < currentBid + auction.bidIncrement || timeLeft.isExpired}
+                      className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isPlacingBid ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          {t("wallet.processing")}
+                        </>
+                      ) : (
+                        <>
+                          <Gavel className="w-5 h-5" />
+                          {t("auctions.placeBid")}
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+
+                {/* Auction Info */}
+                <div className="pt-4 border-t border-slate-200 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">{t("auctions.startingPrice")}</span>
+                    <span className="font-semibold text-slate-900">{formatAuctionPrice(auction.startingPrice)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">{t("auctions.bidIncrement")}</span>
+                    <span className="font-semibold text-slate-900">{formatAuctionPrice(auction.bidIncrement)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

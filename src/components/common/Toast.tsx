@@ -8,6 +8,8 @@ export interface ToastProps {
   type: 'success' | 'error' | 'info' | 'warning'
   duration?: number
   onClose: (id: string) => void
+  actionLabel?: string
+  onAction?: () => void
 }
 
 export const Toast: React.FC<ToastProps> = ({ 
@@ -15,7 +17,9 @@ export const Toast: React.FC<ToastProps> = ({
   message, 
   type, 
   duration = 3000, 
-  onClose 
+  onClose,
+  actionLabel,
+  onAction
 }) => {
   const [isVisible, setIsVisible] = useState(false)
 
@@ -23,14 +27,15 @@ export const Toast: React.FC<ToastProps> = ({
     // Show toast
     setIsVisible(true)
     
-    // Auto hide after duration
+    // Auto hide after duration (longer if there's an action)
+    const actualDuration = actionLabel ? duration * 2 : duration;
     const timer = setTimeout(() => {
       setIsVisible(false)
       setTimeout(() => onClose(id), 300) // Wait for animation to complete
-    }, duration)
+    }, actualDuration)
 
     return () => clearTimeout(timer)
-  }, [id, duration, onClose])
+  }, [id, duration, onClose, actionLabel])
 
   const getToastStyles = () => {
     switch (type) {
@@ -93,6 +98,18 @@ export const Toast: React.FC<ToastProps> = ({
             <p className="text-sm font-medium" style={{ color: colors.Text }}>
               {message}
             </p>
+            {actionLabel && onAction && (
+              <button
+                onClick={() => {
+                  onAction();
+                  setIsVisible(false);
+                  setTimeout(() => onClose(id), 300);
+                }}
+                className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-500 underline"
+              >
+                {actionLabel}
+              </button>
+            )}
           </div>
           <div className="ml-4 flex-shrink-0 flex">
             <button

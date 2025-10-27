@@ -1,6 +1,6 @@
 import { ensureValidToken } from './Auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging-backup.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://beevmarket-production.up.railway.app/api/v1';
 
 // Wallet Types
 export interface WalletData {

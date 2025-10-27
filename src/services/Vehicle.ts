@@ -8,7 +8,7 @@ export interface Vehicle {
   description: string
   price: number
   images: string[]
-  status: 'AVAILABLE' | 'SOLD' | 'DELISTED'
+  status: 'AVAILABLE' | 'SOLD' | 'DELISTED' | 'AUCTION_PENDING_APPROVAL' | 'AUCTION_APPROVED' | 'AUCTION_REJECTED' | 'AUCTION_ACTIVE' | 'AUCTION_LIVE' | 'AUCTION_ENDED'
   brand: string
   model: string
   year: number
@@ -41,6 +41,8 @@ export interface Vehicle {
     }
   }
   isVerified: boolean
+  isAuction?: boolean
+  auctionRejectionReason?: string | null
   createdAt: string
   updatedAt: string
   sellerId: string
@@ -337,7 +339,10 @@ export const getMyVehicleById = async (id: string): Promise<VehicleResponse> => 
 }
 
 // Update vehicle (multipart aware)
-export interface UpdateVehicleRequest extends Partial<CreateVehicleRequest> {}
+export interface UpdateVehicleRequest extends Partial<CreateVehicleRequest> {
+  // URLs/identifiers of existing images to be deleted on the server
+  imagesToDelete?: string[]
+}
 
 export const updateVehicle = async (id: string, payload: UpdateVehicleRequest): Promise<VehicleResponse> => {
   try {
@@ -361,6 +366,10 @@ export const updateVehicle = async (id: string, payload: UpdateVehicleRequest): 
         for (const img of payload.images) {
           if (img instanceof File) formData.append('images', img)
         }
+      }
+      if (payload.imagesToDelete && payload.imagesToDelete.length > 0) {
+        // send as JSON string to preserve array semantics in multipart
+        formData.append('imagesToDelete', JSON.stringify(payload.imagesToDelete))
       }
 
       response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {

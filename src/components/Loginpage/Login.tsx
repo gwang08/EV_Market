@@ -43,17 +43,46 @@ function Login() {
         response.data?.token ||
         response.data?.accessToken ||
         response.data?.access_token;
+      
       if (response.success && token) {
-        const expirationHours = rememberMe ? 24 : 1;
-        storeAuthToken(token, expirationHours);
+        // Use JWT's own expiration time (more accurate)
+        // Only use custom expiration if rememberMe is checked
+        if (rememberMe) {
+          // If remember me is checked, let JWT expiration handle it
+          storeAuthToken(token);
+          console.log('🔐 Remember me enabled - using JWT expiration');
+        } else {
+          // If remember me is NOT checked, limit session to 1 hour
+          storeAuthToken(token, 1);
+          console.log('🔐 Remember me disabled - session limited to 1 hour');
+        }
+        
+        // Get user info from response.data.user if available
+        const userFromLogin = response.data?.user;
+        
+        if (userFromLogin && userFromLogin.role) {
+          // Store user info immediately from login response
+          const { storeUserInfo } = await import("../../services/Auth");
+          storeUserInfo(userFromLogin);
+        }
+        
         toast.success(t("auth.login.loginSuccess", "Đăng nhập thành công!"));
+        
+        // Redirect based on role
+        const userRole = userFromLogin?.role;
+        
         setTimeout(() => {
-          router.push("/");
+          if (userRole === "ADMIN") {
+            router.push("/admin");
+          } else {
+            router.push("/");
+          }
         }, 1200);
       } else {
         toast.error(getLocalizedErrorMessage(response.message || "", t));
       }
     } catch (error) {
+      console.error("❌ Login - Error:", error);
       toast.error(
         t("auth.login.unexpectedError", "Đã xảy ra lỗi không mong muốn")
       );

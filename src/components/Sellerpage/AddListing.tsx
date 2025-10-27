@@ -9,6 +9,7 @@ import {
 } from "../../Utils/validation";
 import { useI18nContext } from "../../providers/I18nProvider";
 import { useToast } from "../../hooks/useToast";
+import { useCurrencyInput } from "../../hooks/useCurrencyInput";
 import { ToastContainer } from "../common/Toast";
 import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
@@ -55,6 +56,7 @@ interface InputProps {
   errors: ValidationError[];
   handleChange: (field: keyof FormData, value: string) => void;
   handleBlur: (field: keyof FormData) => void;
+  currencyInput?: ReturnType<typeof useCurrencyInput>; // Add currency input hook
 }
 
 interface SelectProps {
@@ -68,6 +70,10 @@ interface SelectProps {
   handleBlur: (field: keyof FormData) => void;
 }
 
+interface AddListingProps {
+  onSuccess?: () => void;
+}
+
 // Input component - nâng cấp giao diện
 const Input = ({
   field,
@@ -79,22 +85,17 @@ const Input = ({
   errors,
   handleChange,
   handleBlur,
+  currencyInput,
 }: InputProps) => {
   const { t } = useI18nContext();
   const errorMessage = getFieldError(errors, field);
   const translatedError = errorMessage ? t(errorMessage, errorMessage) : null;
 
-  // Handle input for number fields - only allow numbers
-  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (type === "number") {
-      const value = e.target.value;
-      if (value === "" || /^\d*\.?\d*$/.test(value)) {
-        handleChange(field, value);
-      }
-    } else {
-      handleChange(field, e.target.value);
-    }
-  };
+  // If currency input hook is provided, use it
+  const value = currencyInput ? currencyInput.displayValue : form[field];
+  const onChange = currencyInput 
+    ? (e: React.ChangeEvent<HTMLInputElement>) => currencyInput.handleChange(e.target.value)
+    : (e: React.ChangeEvent<HTMLInputElement>) => handleChange(field, e.target.value);
 
   return (
     <div className="mb-6">
@@ -103,9 +104,9 @@ const Input = ({
       </label>
       <div className="relative">
         <input
-          type={type}
-          value={form[field]}
-          onChange={handleNumberInput}
+          type={currencyInput ? "text" : type}
+          value={value}
+          onChange={onChange}
           onBlur={() => handleBlur(field)}
           placeholder={placeholder}
           className={`w-full px-5 py-3 rounded-xl border-2 text-base font-medium transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 placeholder-gray-400
@@ -185,7 +186,7 @@ const Select = ({
   );
 };
 
-function AddListing() {
+function AddListing({ onSuccess }: AddListingProps = {}) {
   const { t } = useI18nContext();
   const { toasts, success, error: showError, removeToast } = useToast();
   const { refreshVehicles, refreshBatteries } = useDataContext();
@@ -198,20 +199,25 @@ function AddListing() {
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
+  // Currency input hooks for formatted fields
+  const priceInput = useCurrencyInput("");
+  const mileageInput = useCurrencyInput("");
+  const batteryCapacityInput = useCurrencyInput("");
+
   const [form, setForm] = useState<FormData>({
     title: "",
     make: "",
     model: "",
     year: "",
-    price: "",
-    mileage: "",
+    price: "", // Will be managed by priceInput hook
+    mileage: "", // Will be managed by mileageInput hook
     location: "",
     bodyType: "",
     exteriorColor: "",
     interiorColor: "",
     batteryHealth: "",
     range: "",
-    batteryCapacity: "",
+    batteryCapacity: "", // Will be managed by batteryCapacityInput hook
     description: "",
     spec_weight: "",
     spec_voltage: "",
@@ -231,7 +237,12 @@ function AddListing() {
   // Handle validation on blur (when user leaves the field)
   const handleBlur = useCallback(
     (field: keyof FormData) => {
-      const value = form[field];
+      // Get value from currency hooks or form
+      let value = form[field];
+      if (field === "price") value = priceInput.rawValue;
+      if (field === "mileage") value = mileageInput.rawValue;
+      if (field === "batteryCapacity") value = batteryCapacityInput.rawValue;
+
       const error = validateField(field, value, listingType);
 
       if (error) {
@@ -243,7 +254,7 @@ function AddListing() {
         setErrors((prev) => prev.filter((e) => e.field !== field));
       }
     },
-    [form, listingType]
+    [form, listingType, priceInput.rawValue, mileageInput.rawValue, batteryCapacityInput.rawValue]
   );
 
   const handleImageUpload = (files: FileList | null) => {
@@ -274,7 +285,15 @@ function AddListing() {
       return;
     }
 
-    const validation = validateForm(form, listingType);
+    // Update form with currency input values before validation
+    const formToValidate = {
+      ...form,
+      price: priceInput.rawValue,
+      mileage: mileageInput.rawValue,
+      batteryCapacity: batteryCapacityInput.rawValue,
+    };
+
+    const validation = validateForm(formToValidate, listingType);
     if (!validation.isValid) {
       setErrors(validation.errors);
       setCurrentStep(1); // Go back to first step with errors
@@ -283,17 +302,18 @@ function AddListing() {
 
     setSubmitting(true);
     try {
-      // API call
+      // API call - Create listing with auction if enabled
       let result;
+      
       if (listingType === "vehicle") {
-        const vehiclePayload = {
+        const vehiclePayload: any = {
           title: form.title,
           description: form.description,
-          price: Number(form.price),
-          brand: form.make, // API expects 'brand', form uses 'make'
+          price: Number(priceInput.rawValue),
+          brand: form.make,
           model: form.model,
           year: Number(form.year),
-          mileage: Number(form.mileage),
+          mileage: Number(mileageInput.rawValue),
           images: uploadedImages,
           specifications: {
             batteryAndCharging: {
@@ -318,14 +338,15 @@ function AddListing() {
             },
           },
         };
+
         result = await createVehicle(vehiclePayload);
       } else {
-        const batteryPayload = {
+        const batteryPayload: any = {
           title: form.title,
           description: form.description,
-          price: Number(form.price),
-          brand: form.make, // API expects 'brand', form uses 'make'
-          capacity: Number(form.batteryCapacity),
+          price: Number(priceInput.rawValue),
+          brand: form.make,
+          capacity: Number(batteryCapacityInput.rawValue),
           year: Number(form.year),
           health: Number(form.batteryHealth),
           images: uploadedImages,
@@ -340,10 +361,10 @@ function AddListing() {
             temperatureRange: form.spec_temperatureRange || undefined,
           },
         };
+
         result = await createBattery(batteryPayload);
       }
 
-      console.log("API result:", result);
 
       if (!result.success) {
         showError(
@@ -352,6 +373,7 @@ function AddListing() {
         return;
       }
 
+      // Success message
       success(t("seller.addListing.validation.listingCreatedSuccess"));
 
       // Refresh cache to show new listing immediately
@@ -386,10 +408,18 @@ function AddListing() {
         spec_warrantyPeriod: "",
         spec_temperatureRange: "",
       });
+      priceInput.reset();
+      mileageInput.reset();
+      batteryCapacityInput.reset();
       setUploadedImages([]);
       setImagePreviews([]);
       setCurrentStep(1);
       setErrors([]);
+
+      // Call onSuccess callback to switch to MyListings tab
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (e) {
       console.error("Error in handleSubmit:", e);
       const errorMessage =
@@ -438,12 +468,12 @@ function AddListing() {
               field="price"
               label={t("seller.addListing.fields.price")}
               placeholder={t("seller.addListing.placeholders.price")}
-              type="number"
               required
               form={form}
               errors={errors}
               handleChange={handleChange}
               handleBlur={handleBlur}
+              currencyInput={priceInput}
             />
             {listingType === "vehicle" ? (
               <Select
@@ -521,12 +551,12 @@ function AddListing() {
                 field="mileage"
                 label={t("seller.addListing.fields.mileage")}
                 placeholder={t("seller.addListing.placeholders.mileage")}
-                type="number"
                 required
                 form={form}
                 errors={errors}
                 handleChange={handleChange}
                 handleBlur={handleBlur}
+                currencyInput={mileageInput}
               />
             )}
           </div>
@@ -587,12 +617,12 @@ function AddListing() {
               field="batteryCapacity"
               label={t("seller.addListing.fields.batteryCapacity")}
               placeholder="75"
-              type="number"
               required
               form={form}
               errors={errors}
               handleChange={handleChange}
               handleBlur={handleBlur}
+              currencyInput={batteryCapacityInput}
             />
             <Input
               field="batteryHealth"
@@ -1121,6 +1151,7 @@ function AddListing() {
                 </p>
               )}
             </div>
+
           </div>
         );
     }
@@ -1133,13 +1164,13 @@ function AddListing() {
       requiredFields =
         listingType === "vehicle"
           ? ["title", "price", "make", "model", "year", "mileage"]
-          : ["title", "price", "make", "year", "batteryCapacity"];
+          : ["title", "price", "make", "year"]; // Battery step 1: only basic info
     }
     if (currentStep === 2) {
       requiredFields =
         listingType === "vehicle"
           ? ["location", "bodyType", "exteriorColor", "interiorColor"]
-          : ["batteryCapacity", "batteryHealth"];
+          : ["batteryCapacity", "batteryHealth"]; // Battery step 2: capacity and health
     }
     if (currentStep === 3) {
       requiredFields =
@@ -1159,8 +1190,16 @@ function AddListing() {
       }
     }
 
-    // Kiểm tra field rỗng
-    const emptyFields = requiredFields.filter((field) => !form[field]);
+    // Kiểm tra field rỗng - phải check cả currency input hooks
+    const emptyFields = requiredFields.filter((field) => {
+      // Check currency input hooks for price, mileage, batteryCapacity
+      if (field === "price") return !priceInput.rawValue;
+      if (field === "mileage") return !mileageInput.rawValue;
+      if (field === "batteryCapacity") return !batteryCapacityInput.rawValue;
+      // Otherwise check form
+      return !form[field];
+    });
+    
     if (emptyFields.length > 0) {
       setErrors(
         emptyFields.map((field) => ({
@@ -1192,7 +1231,41 @@ function AddListing() {
         </div>
         <div className="flex gap-4">
           <button
-            onClick={() => setListingType("vehicle")}
+            onClick={() => {
+              setListingType("vehicle");
+              // Reset form when switching type
+              setForm({
+                title: "",
+                make: "",
+                model: "",
+                year: "",
+                price: "",
+                mileage: "",
+                location: "",
+                bodyType: "",
+                exteriorColor: "",
+                interiorColor: "",
+                batteryHealth: "",
+                range: "",
+                batteryCapacity: "",
+                description: "",
+                spec_weight: "",
+                spec_voltage: "",
+                spec_chemistry: "",
+                spec_degradation: "",
+                spec_chargingTime: "",
+                spec_installation: "",
+                spec_warrantyPeriod: "",
+                spec_temperatureRange: "",
+              });
+              priceInput.reset();
+              mileageInput.reset();
+              batteryCapacityInput.reset();
+              setUploadedImages([]);
+              setImagePreviews([]);
+              setCurrentStep(1);
+              setErrors([]);
+            }}
             className={`flex items-center gap-3 px-7 py-4 rounded-xl border-2 transition-all duration-300 font-semibold text-lg
               ${
                 listingType === "vehicle"
@@ -1204,7 +1277,41 @@ function AddListing() {
             {t("seller.listings.vehicle")}
           </button>
           <button
-            onClick={() => setListingType("battery")}
+            onClick={() => {
+              setListingType("battery");
+              // Reset form when switching type
+              setForm({
+                title: "",
+                make: "",
+                model: "",
+                year: "",
+                price: "",
+                mileage: "",
+                location: "",
+                bodyType: "",
+                exteriorColor: "",
+                interiorColor: "",
+                batteryHealth: "",
+                range: "",
+                batteryCapacity: "",
+                description: "",
+                spec_weight: "",
+                spec_voltage: "",
+                spec_chemistry: "",
+                spec_degradation: "",
+                spec_chargingTime: "",
+                spec_installation: "",
+                spec_warrantyPeriod: "",
+                spec_temperatureRange: "",
+              });
+              priceInput.reset();
+              mileageInput.reset();
+              batteryCapacityInput.reset();
+              setUploadedImages([]);
+              setImagePreviews([]);
+              setCurrentStep(1);
+              setErrors([]);
+            }}
             className={`flex items-center gap-3 px-7 py-4 rounded-xl border-2 transition-all duration-300 font-semibold text-lg
               ${
                 listingType === "battery"

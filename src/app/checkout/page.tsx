@@ -2,16 +2,16 @@
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import Checkout from '@/components/CheckOutpage/Checkout'
-import AuthWrapper from '@/components/common/AuthWrapper'
+import MemberOnlyWrapper from '@/components/common/MemberOnlyWrapper'
 
 export default function CheckoutPage() {
   return (
-    <AuthWrapper>
+    <MemberOnlyWrapper>
       <div className="min-h-screen bg-gray-50">
         <Header />
         <Checkout />
         <Footer />
       </div>
-    </AuthWrapper>
+    </MemberOnlyWrapper>
   )
 }

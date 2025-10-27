@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import colors from "../../Utils/Color";
 import { useI18nContext } from "../../providers/I18nProvider";
+import { useCurrencyInput } from "../../hooks/useCurrencyInput";
 import Image from "next/image";
 import {
   getMyVehicles,
@@ -37,7 +37,6 @@ function MyListings() {
   const { t } = useI18nContext();
   const { toasts, success, error: showError, removeToast } = useToast();
   const { refreshVehicles, refreshBatteries } = useDataContext();
-  const [filter, setFilter] = useState<"all" | "active" | "sold">("all");
   const [tab, setTab] = useState<ListingType>("vehicle");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [batteries, setBatteries] = useState<Battery[]>([]);
@@ -58,9 +57,7 @@ function MyListings() {
   // Form data state
   const [formData, setFormData] = useState({
     title: "",
-    price: "",
     year: "",
-    mileage: "",
     description: "",
     brand: "",
     model: "",
@@ -68,6 +65,10 @@ function MyListings() {
     capacity: "",
     health: "",
   });
+
+  // Currency inputs using useCurrencyInput hook
+  const priceInput = useCurrencyInput("");
+  const mileageInput = useCurrencyInput("");
 
   const setApiErrors = (errors: Record<string, string>) => {
     const validationErrors = Object.entries(errors).map(([field, message]) => ({
@@ -102,54 +103,6 @@ function MyListings() {
       [field]: value,
     }));
   }, []);
-
-  // Handle number input - only allow numbers for specific fields
-  const handleNumberInput = useCallback(
-    (field: string, e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      // Check if field should only accept numbers
-      const numberFields = ["price", "year", "mileage", "capacity", "health"];
-
-      if (numberFields.includes(field)) {
-        // Allow empty string, numbers, and decimal point
-        if (value === "" || /^\d*\.?\d*$/.test(value)) {
-          handleInputChange(field, value);
-        }
-      } else {
-        handleInputChange(field, value);
-      }
-    },
-    [handleInputChange]
-  );
-
-  // Handle key press for number fields - prevent non-numeric characters
-  const handleNumberKeyPress = useCallback(
-    (field: string, e: React.KeyboardEvent<HTMLInputElement>) => {
-      const numberFields = ["price", "year", "mileage", "capacity", "health"];
-
-      if (numberFields.includes(field)) {
-        // Allow: backspace, delete, tab, escape, enter, decimal point
-        if (
-          [8, 9, 27, 13, 46, 110, 190].indexOf(e.keyCode) !== -1 ||
-          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-          (e.keyCode === 65 && e.ctrlKey === true) ||
-          (e.keyCode === 67 && e.ctrlKey === true) ||
-          (e.keyCode === 86 && e.ctrlKey === true) ||
-          (e.keyCode === 88 && e.ctrlKey === true)
-        ) {
-          return;
-        }
-        // Ensure that it is a number and stop the keypress
-        if (
-          (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
-          (e.keyCode < 96 || e.keyCode > 105)
-        ) {
-          e.preventDefault();
-        }
-      }
-    },
-    []
-  );
 
   // Handle validation on blur (when user leaves the field)
   const handleInputBlur = useCallback(
@@ -234,42 +187,42 @@ function MyListings() {
 
   const listings = useMemo(() => {
     if (tab === "vehicle")
-      return vehicles.map((v) => ({
-        id: v.id,
-        type: "vehicle" as const,
-        title: v.title,
-        price: `$${Number(v.price).toLocaleString()}`,
-        status: v.status === "SOLD" ? "sold" : "active",
-        image: v.images?.[0] || "/Homepage/TopCar.png",
+      return vehicles
+        .filter((v) => v.status !== "DELISTED" && v.status === "AVAILABLE") // Chỉ hiển thị AVAILABLE
+        .map((v) => ({
+          id: v.id,
+          type: "vehicle" as const,
+          title: v.title,
+          price: `$${Number(v.price).toLocaleString()}`,
+          status: v.status === "SOLD" ? "sold" : "active",
+          image: v.images?.[0] || "/Homepage/TopCar.png",
+          specs: {
+            mileage: `${v.mileage?.toLocaleString()} km`,
+            battery: v.specifications?.batteryAndCharging?.range
+              ? `${v.specifications.batteryAndCharging.range} km range`
+              : "",
+            year: v.year ? `${v.year}` : "",
+            brand: v.brand || "",
+            model: v.model || "",
+          },
+        }));
+    return batteries
+      .filter((b) => b.status !== "DELISTED" && b.status === "AVAILABLE") // Chỉ hiển thị AVAILABLE
+      .map((b) => ({
+        id: b.id,
+        type: "battery" as const,
+        title: b.title,
+        price: `$${Number(b.price).toLocaleString()}`,
+        status: b.status === "SOLD" ? "sold" : "active",
+        image: b.images?.[0] || "/Homepage/Car.png",
         specs: {
-          mileage: `${v.mileage?.toLocaleString()} km`,
-          battery: v.specifications?.batteryAndCharging?.range
-            ? `${v.specifications.batteryAndCharging.range} km range`
-            : "",
-          year: v.year ? `${v.year}` : "",
-          brand: v.brand || "",
-          model: v.model || "",
+          capacity: b.capacity ? `${b.capacity} kWh` : "",
+          health: `${b.health}% health`,
+          year: b.year ? `${b.year}` : "",
+          brand: b.brand || "",
         },
       }));
-    return batteries.map((b) => ({
-      id: b.id,
-      type: "battery" as const,
-      title: b.title,
-      price: `$${Number(b.price).toLocaleString()}`,
-      status: b.status === "SOLD" ? "sold" : "active",
-      image: b.images?.[0] || "/Homepage/Car.png",
-      specs: {
-        capacity: b.capacity ? `${b.capacity} kWh` : "",
-        health: `${b.health}% health`,
-        year: b.year ? `${b.year}` : "",
-        brand: b.brand || "",
-      },
-    }));
   }, [tab, vehicles, batteries]);
-
-  const filteredListings = listings.filter((l) =>
-    filter === "all" ? true : l.status === filter
-  );
 
   const openEdit = (item: { id: string; type: ListingType }) => {
     setEditType(item.type);
@@ -277,35 +230,33 @@ function MyListings() {
 
     if (item.type === "vehicle") {
       const v = vehicles.find((v) => v.id === item.id);
-      const formData = {
+      setFormData({
         title: v?.title || "",
-        price: String(v?.price ?? ""),
         year: String(v?.year ?? ""),
-        mileage: String(v?.mileage ?? ""),
         description: v?.description || "",
         brand: v?.brand || "",
         model: v?.model || "",
         status: v?.status || "AVAILABLE",
         capacity: "",
         health: "",
-      };
-      setFormData(formData);
+      });
+      priceInput.setValue(String(v?.price ?? ""));
+      mileageInput.setValue(String(v?.mileage ?? ""));
       setEditImages(v?.images || []);
     } else {
       const b = batteries.find((b) => b.id === item.id);
-      const formData = {
+      setFormData({
         title: b?.title || "",
-        price: String(b?.price ?? ""),
         year: String(b?.year ?? ""),
-        mileage: "",
         description: b?.description || "",
         brand: b?.brand || "",
         model: "",
         status: "AVAILABLE",
         capacity: String(b?.capacity ?? ""),
         health: String(b?.health ?? ""),
-      };
-      setFormData(formData);
+      });
+      priceInput.setValue(String(b?.price ?? ""));
+      mileageInput.setValue(""); // Battery doesn't have mileage
       setEditImages(b?.images || []);
     }
 
@@ -356,7 +307,6 @@ function MyListings() {
       return;
     }
 
-    console.log("onSave called with:", { editId, editType, formData });
 
     try {
       // Map formData fields to validation format based on editType
@@ -365,17 +315,17 @@ function MyListings() {
         validationData = {
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: priceInput.rawValue,
           make: formData.brand, // Map brand to make for validation
           model: formData.model,
           year: formData.year,
-          mileage: formData.mileage,
+          mileage: mileageInput.rawValue,
         };
       } else {
         validationData = {
           title: formData.title,
           description: formData.description,
-          price: formData.price,
+          price: priceInput.rawValue,
           year: formData.year,
           batteryCapacity: formData.capacity, // Map capacity to batteryCapacity for validation
           batteryHealth: formData.health,
@@ -383,21 +333,12 @@ function MyListings() {
         };
       }
 
-      console.log("validationData mapped:", validationData);
 
       // Validate form data
       const validationResult = validateForm(validationData, editType);
-      console.log("Validation result:", validationResult);
 
       if (!validationResult.isValid) {
-        console.log("Validation failed:", validationResult.errors);
-        console.log(
-          "Validation errors details:",
-          validationResult.errors.map((e) => ({
-            field: e.field,
-            message: e.message,
-          }))
-        );
+      ;
         setValidationErrors(validationResult.errors);
         showError(
           `Validation failed: ${validationResult.errors
@@ -411,21 +352,20 @@ function MyListings() {
       if (editType === "vehicle") {
         const payload = {
           title: formData.title,
-          price: Number(formData.price) || undefined,
+          price: Number(priceInput.rawValue) || undefined,
           year: Number(formData.year) || undefined,
-          mileage: Number(formData.mileage) || undefined,
+          mileage: Number(mileageInput.rawValue) || undefined,
           description: formData.description,
           brand: formData.brand,
           model: formData.model,
           status: formData.status as "AVAILABLE" | "SOLD" | "DELISTED",
           images: newImages.length > 0 ? newImages : undefined,
         };
-        console.log("Updating vehicle with payload:", payload);
         result = await updateVehicle(editId, payload);
       } else {
         const payload = {
           title: formData.title,
-          price: Number(formData.price) || undefined,
+          price: Number(priceInput.rawValue) || undefined,
           year: Number(formData.year) || undefined,
           capacity: Number(formData.capacity) || undefined,
           health: Number(formData.health) || undefined,
@@ -433,14 +373,11 @@ function MyListings() {
           brand: formData.brand,
           images: newImages.length > 0 ? newImages : undefined,
         };
-        console.log("Updating battery with payload:", payload);
         result = await updateBattery(editId, payload);
       }
 
-      console.log("API result:", result);
 
       if (!result.success) {
-        console.log("API call failed:", result);
         // Handle API validation errors
         if ((result as any).errors || (result as any).details) {
           const apiErrors = parseApiValidationErrors(result as any);
@@ -578,44 +515,8 @@ function MyListings() {
             </span>
           </button>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-700 hover:bg-blue-50"
-            }
-          `}
-          >
-            {t("seller.listings.all")}
-          </button>
-          <button
-            onClick={() => setFilter("active")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "active"
-                ? "bg-green-600 text-white"
-                : "bg-white text-slate-700 hover:bg-green-50"
-            }
-          `}
-          >
-            {t("seller.listings.active")}
-          </button>
-          <button
-            onClick={() => setFilter("sold")}
-            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors duration-200
-            ${
-              filter === "sold"
-                ? "bg-gray-600 text-white"
-                : "bg-white text-slate-700 hover:bg-gray-50"
-            }
-          `}
-          >
-            {t("seller.listings.sold")}
-          </button>
-        </div>
+        
+   
       </div>
 
       {/* Loading/Error */}
@@ -628,7 +529,7 @@ function MyListings() {
 
       {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-        {filteredListings.map((item, idx) => (
+        {listings.map((item, idx) => (
           <div
             key={item.id}
             className="group relative flex flex-col bg-white rounded-3xl shadow-2xl border border-blue-100 hover:border-blue-400 hover:shadow-[0_8px_32px_0_rgba(59,130,246,0.10)] transition-all duration-300 overflow-hidden cursor-pointer"
@@ -755,7 +656,7 @@ function MyListings() {
       </div>
 
       {/* Empty State */}
-      {filteredListings.length === 0 && !loading && (
+      {listings.length === 0 && !loading && (
         <div className="text-center py-20 bg-white rounded-xl shadow border border-gray-100 mt-8">
           <div className="max-w-md mx-auto">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -899,11 +800,10 @@ function MyListings() {
                     <span className="text-red-600 font-bold">*</span>
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     className={getInputClass("price")}
-                    value={formData.price}
-                    onChange={(e) => handleNumberInput("price", e)}
-                    onKeyDown={(e) => handleNumberKeyPress("price", e)}
+                    value={priceInput.displayValue}
+                    onChange={(e) => priceInput.handleChange(e.target.value)}
                     onBlur={() => handleInputBlur("price")}
                     placeholder={t("seller.listings.form.pricePlaceholder")}
                   />
@@ -918,8 +818,7 @@ function MyListings() {
                     type="number"
                     className={getInputClass("year")}
                     value={formData.year}
-                    onChange={(e) => handleNumberInput("year", e)}
-                    onKeyDown={(e) => handleNumberKeyPress("year", e)}
+                    onChange={(e) => handleInputChange("year", e.target.value)}
                     onBlur={() => handleInputBlur("year")}
                     placeholder={t("seller.listings.form.yearPlaceholder")}
                   />
@@ -933,11 +832,10 @@ function MyListings() {
                         <span className="text-red-600 font-bold">*</span>
                       </label>
                       <input
-                        type="number"
+                        type="text"
                         className={getInputClass("mileage")}
-                        value={formData.mileage || ""}
-                        onChange={(e) => handleNumberInput("mileage", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("mileage", e)}
+                        value={mileageInput.displayValue}
+                        onChange={(e) => mileageInput.handleChange(e.target.value)}
                         onBlur={() => handleInputBlur("mileage")}
                         placeholder={t(
                           "seller.listings.form.mileagePlaceholder"
@@ -989,8 +887,7 @@ function MyListings() {
                         type="number"
                         className={getInputClass("capacity")}
                         value={formData.capacity || ""}
-                        onChange={(e) => handleNumberInput("capacity", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("capacity", e)}
+                        onChange={(e) => handleInputChange("capacity", e.target.value)}
                         onBlur={() => handleInputBlur("capacity")}
                         placeholder={t(
                           "seller.listings.form.capacityPlaceholder"
@@ -1007,8 +904,7 @@ function MyListings() {
                         type="number"
                         className={getInputClass("health")}
                         value={formData.health || ""}
-                        onChange={(e) => handleNumberInput("health", e)}
-                        onKeyDown={(e) => handleNumberKeyPress("health", e)}
+                        onChange={(e) => handleInputChange("health", e.target.value)}
                         onBlur={() => handleInputBlur("health")}
                         placeholder={t(
                           "seller.listings.form.healthPlaceholder"

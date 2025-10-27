@@ -141,8 +141,8 @@ function BrowsePageContent() {
 
     // Price range filter
     const price = parseFloat(product.price.replace(/[$,]/g, ""));
-    if (filters.minPrice && price < parseFloat(filters.minPrice)) return false;
-    if (filters.maxPrice && price > parseFloat(filters.maxPrice)) return false;
+    if (filters.minPrice && price < parseFloat(filters.minPrice.replace(/,/g, ""))) return false;
+    if (filters.maxPrice && price > parseFloat(filters.maxPrice.replace(/,/g, ""))) return false;
 
     // Brand filter
     if (filters.brands.length > 0 && !filters.brands.includes(product.brand))
@@ -184,45 +184,47 @@ function BrowsePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white mt-25">
-      <Header />
+    <>
+      <div className="min-h-screen bg-white mt-25">
+        <Header />
 
-      {/* Browse Header */}
-      <BrowseHeader
-        onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
-        isFilterOpen={isFilterOpen}
-      />
+        {/* Browse Header */}
+        <BrowseHeader
+          onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
+          isFilterOpen={isFilterOpen}
+        />
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row">
-          {/* Filters Sidebar - Left */}
-          <div className="lg:w-80 lg:flex-shrink-0">
-            <BrowseFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onClearFilters={clearFilters}
-              isOpen={isFilterOpen}
-              availableBrands={availableBrands}
-              className=""
-            />
-          </div>
-
-          {/* Products Grid - Right */}
-          <div className="flex-1 min-w-0">
-            <div className="p-6">
-              <ProductGrid
-                products={filteredProducts}
-                isLoading={isLoadingVehicles || isLoadingBatteries}
-                error={null}
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row">
+            {/* Filters Sidebar - Left */}
+            <div className="lg:w-80 lg:flex-shrink-0">
+              <BrowseFilters
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={clearFilters}
+                isOpen={isFilterOpen}
+                availableBrands={availableBrands}
+                className=""
               />
+            </div>
+
+            {/* Products Grid - Right */}
+            <div className="flex-1 min-w-0">
+              <div className="p-6">
+                <ProductGrid
+                  products={filteredProducts}
+                  isLoading={isLoadingVehicles || isLoadingBatteries}
+                  error={null}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 }
 
