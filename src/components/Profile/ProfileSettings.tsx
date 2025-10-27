@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { X, Check, AlertCircle } from "lucide-react";
 import colors from "../../Utils/Color";
 import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useI18nContext } from "../../providers/I18nProvider";
 import {
   getUserProfile,
@@ -262,14 +263,20 @@ function ProfileSettings({}: ProfileSettingsProps) {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-3xl shadow-xl border border-blue-100 p-10 md:p-12">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.5, type: "spring" }}
+              className="bg-white rounded-3xl shadow-xl border border-blue-100 p-10 md:p-12"
+            >
               {/* Success/Error Messages */}
               <div className="mb-8">
                 {success && (
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-xl flex items-center gap-3 shadow"
+                    className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 shadow"
                   >
                     <Check className="text-green-600" size={22} />
                     <span className="text-green-700 font-semibold">
@@ -288,7 +295,7 @@ function ProfileSettings({}: ProfileSettingsProps) {
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl flex items-center gap-3 shadow"
+                    className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 shadow"
                   >
                     <AlertCircle className="text-red-600" size={22} />
                     <span className="text-red-700 font-semibold">{error}</span>
@@ -303,38 +310,47 @@ function ProfileSettings({}: ProfileSettingsProps) {
               </div>
 
               {/* Tab Content */}
-              <div className="w-full">
-                {/* Không render nút chuyển tab ở main content nữa, chỉ render nội dung tab */}
-                <div className="mt-2">
-                  {activeTab === "profile" && (
-                    <ProfileTab
-                      user={user}
-                      formData={{
-                        name: formData.name,
-                        email: formData.email,
-                      }}
-                      saving={saving}
-                      onInputChange={handleInputChange}
-                      onSave={handleSaveProfile}
-                    />
-                  )}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 30 }}
+                  transition={{ duration: 0.5, type: "spring" }}
+                  className="w-full"
+                >
+                  {/* Không render nút chuyển tab ở main content nữa, chỉ render nội dung tab */}
+                  <div className="mt-2">
+                    {activeTab === "profile" && (
+                      <ProfileTab
+                        user={user}
+                        formData={{
+                          name: formData.name,
+                          email: formData.email,
+                        }}
+                        saving={saving}
+                        onInputChange={handleInputChange}
+                        onSave={handleSaveProfile}
+                      />
+                    )}
 
-                  {activeTab === "security" && (
-                    <SecurityTab
-                      formData={{
-                        currentPassword: formData.currentPassword,
-                        newPassword: formData.newPassword,
-                        confirmPassword: formData.confirmPassword,
-                      }}
-                      showPasswords={showPasswords}
-                      onInputChange={handleInputChange}
-                      onTogglePassword={handleTogglePassword}
-                      onUpdatePassword={handleUpdatePassword}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
+                    {activeTab === "security" && (
+                      <SecurityTab
+                        formData={{
+                          currentPassword: formData.currentPassword,
+                          newPassword: formData.newPassword,
+                          confirmPassword: formData.confirmPassword,
+                        }}
+                        showPasswords={showPasswords}
+                        onInputChange={handleInputChange}
+                        onTogglePassword={handleTogglePassword}
+                        onUpdatePassword={handleUpdatePassword}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
           </div>
         </div>
       </div>
