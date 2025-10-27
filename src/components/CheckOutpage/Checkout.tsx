@@ -17,12 +17,17 @@ import {
   formatCurrency,
   openPaymentUrl,
 } from "@/services/Wallet";
-import { ensureValidToken } from "@/services/Auth";
+import { ensureValidToken, getUserInfo } from "@/services/Auth";
 import { checkout, payWithWallet } from "@/services/Checkout";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getVehicleById, type Vehicle } from "@/services/Vehicle";
 import { getBatteryById, type Battery } from "@/services/Battery";
 import { useToast } from "../../providers/ToastProvider";
+import ContractModal from "../common/ContractModal";
+import {
+  getContractByVehicleId,
+  signContractAsBuyer,
+} from "@/services/Contract";
 
 export default function Checkout() {
   const { t } = useI18nContext();
@@ -66,6 +71,11 @@ export default function Checkout() {
     deeplink?: string;
     qrCodeUrl?: string;
   } | null>(null);
+
+  // Contract modal state
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractData, setContractData] = useState<any>(null);
+  const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -293,53 +303,130 @@ export default function Checkout() {
       );
       return;
     }
-    setProcessing(true);
+
+    // Get contract data before payment
     try {
-      const res = await checkout({
+      const contractResult = await getContractByVehicleId(listingId);
+
+      if (!contractResult.success || !contractResult.data) {
+        toast.error(
+          "Không tìm thấy hợp đồng cho sản phẩm này. Vui lòng liên hệ người bán."
+        );
+        return;
+      }
+
+      // Get buyer info
+      const userInfo = getUserInfo();
+      if (!userInfo) {
+        toast.error("Không thể lấy thông tin người mua");
+        return;
+      }
+
+      // Prepare contract data with buyer info
+      const updatedContractData = {
+        ...contractResult.data,
+        buyer: {
+          id: userInfo.id,
+          name: userInfo.name,
+          email: userInfo.email,
+        },
+      };
+
+      // Store payment data for later
+      setPendingPaymentData({
         listingId,
-        listingType: listingType as "VEHICLE" | "BATTERY",
+        listingType,
         paymentMethod: selectedPaymentMethod === "qr" ? "MOMO" : "WALLET",
       });
 
-      if (selectedPaymentMethod === "qr") {
-        const source =
-          res?.data && (res.data as any).paymentInfo
-            ? (res.data as any).paymentInfo
-            : (res?.data as any);
-        const payUrl = source?.payUrl;
-        const deeplink = source?.deeplink;
-        const qrCodeUrl = source?.qrCodeUrl;
-        if (payUrl) {
-          openPaymentUrl(payUrl, "_blank");
-        } else if (deeplink || qrCodeUrl) {
-          setPaymentLinks({ payUrl, deeplink, qrCodeUrl });
-          setQrOpen(true);
+      // Show contract modal
+      setContractData(updatedContractData);
+      setShowContractModal(true);
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể kiểm tra hợp đồng");
+    }
+  };
+
+  // Handle buyer signing the contract
+  const handleBuyerSign = async (signature: string) => {
+    try {
+      if (!contractData || !pendingPaymentData) {
+        toast.error("Thiếu thông tin hợp đồng hoặc thanh toán");
+        return;
+      }
+
+      // Sign contract as buyer
+      const signResult = await signContractAsBuyer(
+        contractData.vehicleId,
+        {
+          id: contractData.buyer.id,
+          name: contractData.buyer.name,
+          email: contractData.buyer.email,
+        },
+        signature
+      );
+
+      if (!signResult.success) {
+        toast.error("Không thể ký hợp đồng: " + signResult.message);
+        return;
+      }
+
+      // Close contract modal
+      setShowContractModal(false);
+      toast.success("Hợp đồng đã được ký thành công!");
+
+      // Proceed with payment
+      setProcessing(true);
+      try {
+        const res = await checkout({
+          listingId: pendingPaymentData.listingId,
+          listingType: pendingPaymentData.listingType as "VEHICLE" | "BATTERY",
+          paymentMethod: pendingPaymentData.paymentMethod,
+        });
+
+        if (pendingPaymentData.paymentMethod === "MOMO") {
+          const source =
+            res?.data && (res.data as any).paymentInfo
+              ? (res.data as any).paymentInfo
+              : (res?.data as any);
+          const payUrl = source?.payUrl;
+          const deeplink = source?.deeplink;
+          const qrCodeUrl = source?.qrCodeUrl;
+          if (payUrl) {
+            openPaymentUrl(payUrl, "_blank");
+          } else if (deeplink || qrCodeUrl) {
+            setPaymentLinks({ payUrl, deeplink, qrCodeUrl });
+            setQrOpen(true);
+          } else {
+            toast.error("Không tìm thấy liên kết thanh toán MoMo.");
+          }
         } else {
-          toast.error("Không tìm thấy liên kết thanh toán MoMo.");
-        }
-      } else {
-        // WALLET flow: two-step, requires transactionId
-        const transactionId = (res as any)?.data?.transactionId;
-        if (!transactionId) {
-          toast.error("Không tìm thấy transactionId để thanh toán ví.");
-          return;
-        }
-        try {
-          const payRes = await payWithWallet(transactionId);
+          // WALLET flow: two-step, requires transactionId
+          const transactionId = (res as any)?.data?.transactionId;
+          if (!transactionId) {
+            toast.error("Không tìm thấy transactionId để thanh toán ví.");
+            return;
+          }
           try {
-            const bal = await getWalletBalance();
-            setWalletBalance(bal.data?.availableBalance ?? null);
-          } catch {}
-          toast.success(payRes?.message || "Thanh toán bằng ví thành công!");
-          setTimeout(() => router.push("/"), 1500);
-        } catch (e: any) {
-          toast.error(e?.message || "Thanh toán ví thất bại");
+            const payRes = await payWithWallet(transactionId);
+            try {
+              const bal = await getWalletBalance();
+              setWalletBalance(bal.data?.availableBalance ?? null);
+            } catch {}
+            toast.success(payRes?.message || "Thanh toán bằng ví thành công!");
+            setTimeout(() => router.push("/"), 1500);
+          } catch (e: any) {
+            toast.error(e?.message || "Thanh toán ví thất bại");
+          }
         }
+      } catch (error: any) {
+        toast.error(error?.message || "Thanh toán thất bại");
+      } finally {
+        setProcessing(false);
+        setPendingPaymentData(null);
       }
     } catch (error: any) {
-      toast.error(error?.message || "Thanh toán thất bại");
-    } finally {
-      setProcessing(false);
+      toast.error(error?.message || "Lỗi khi ký hợp đồng");
     }
   };
 
@@ -706,6 +793,21 @@ export default function Checkout() {
               </div>
             </div>
           </motion.div>
+        )}
+
+        {/* Contract Modal */}
+        {showContractModal && contractData && (
+          <ContractModal
+            isOpen={showContractModal}
+            onClose={() => {
+              setShowContractModal(false);
+              setPendingPaymentData(null);
+            }}
+            onSign={handleBuyerSign}
+            contractData={contractData}
+            signerRole="buyer"
+            currentUserName={contractData.buyer?.name || ""}
+          />
         )}
       </div>
     </motion.main>
