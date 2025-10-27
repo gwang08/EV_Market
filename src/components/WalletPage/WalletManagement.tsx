@@ -4,7 +4,7 @@ import { useI18nContext } from "@/providers/I18nProvider";
 import { getWalletBalance, formatCurrency, WalletData } from "@/services";
 import { useToast } from "@/hooks/useToast";
 import TransactionHistory from "./TransactionHistory";
-import AccrualFundsHold from "./AccrualFundsHold";
+// import AccrualFundsHold from "./AccrualFundsHold";
 import DepositModal from "./DepositModal";
 
 function WalletManagement() {
@@ -180,7 +180,7 @@ function WalletManagement() {
               </div>
             </div>
             {/* Accrual Funds Hold */}
-            <div>
+            {/* <div>
               <h2 className="text-xl font-bold text-indigo-900 mb-4">
                 {t("wallet.lockedSection", "Tiền tạm giữ")}
               </h2>
@@ -188,7 +188,7 @@ function WalletManagement() {
                 holdAmount={walletData?.lockedBalance || 0}
                 description={t("wallet.lockedDescription")}
               />
-            </div>
+            </div> */}
           </div>
           {/* Right Column: Transaction History only */}
           <div className="flex flex-col gap-12 xl:col-span-2">

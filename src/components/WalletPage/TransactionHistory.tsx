@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { getAuthToken } from "@/services";
-
+import { motion } from "framer-motion";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_ENDPOINT ||
   "https://beevmarket-production.up.railway.app/api/v1";

@@ -185,14 +185,10 @@ function ProfileSettings({}: ProfileSettingsProps) {
 
   if (loading) {
     return (
-<<<<<<< HEAD
       <div
         className="min-h-screen pt-50"
         style={{ backgroundColor: colors.Background }}
       >
-=======
-      <div className="min-h-screen " style={{backgroundColor: colors.Background}}>
->>>>>>> 44c3c110556157db19533f5bbac6f22913c6293d
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Skeleton UI for Profile Settings */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -235,21 +231,12 @@ function ProfileSettings({}: ProfileSettingsProps) {
   }
 
   return (
-<<<<<<< HEAD
     <section className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 pt-30 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
         {/* Header */}
         <div className="mb-10 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 drop-shadow-lg mb-3">
             {t("profile.settings.title", "Profile Settings")}
-=======
-    <div className="min-h-screen mt-40" style={{backgroundColor: colors.Background}}>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2" >
-            {t('profile.settings.title', 'Profile Settings')}
->>>>>>> 44c3c110556157db19533f5bbac6f22913c6293d
           </h1>
           <p className="text-lg md:text-xl text-slate-600 font-medium">
             {t(
