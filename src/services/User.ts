@@ -2,7 +2,7 @@
 // Import auth functions from Auth service
 import { getAuthToken, isAuthenticated, logoutUser } from './Auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging-backup.onrender.com/api/v1'
 
 // Types for User API
 export interface User {

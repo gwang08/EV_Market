@@ -42,6 +42,16 @@ export {
   getSellerProfile,
 } from './User'
 
+// Export Contract services
+export {
+  createSellerContract,
+  signContractAsSeller,
+  signContractAsBuyer,
+  getContractByVehicleId,
+  getUserContracts,
+  deleteContract,
+} from './Contract'
+
 // Export Battery services
 export {
   createBattery,
