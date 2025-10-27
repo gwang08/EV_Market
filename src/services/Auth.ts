@@ -1,5 +1,5 @@
 // Auth service for login and register API calls
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging-backup.onrender.com/api/v1'
 
 // Types for API requests and responses
 export interface LoginRequest {

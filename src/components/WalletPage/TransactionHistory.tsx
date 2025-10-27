@@ -52,7 +52,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
         }
 
         const response = await fetch(
-          "https://evmarket-api-staging.onrender.com/api/v1/wallet/history",
+          "https://evmarket-api-staging-backup.onrender.com/api/v1/wallet/history",
           {
             method: "GET",
             headers: {
@@ -254,8 +254,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left">
+        <div>
+          <table className="w-full text-left">
             <thead>
               <tr className="bg-blue-50">
                 <th className="px-6 py-3 text-slate-700 font-bold">
@@ -327,7 +327,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         {tx.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{tx.createdAt}</td>
+                    <td className="px-6 py-4 text-slate-600">{formatDate(tx.createdAt)}</td>
                     <td className="px-6 py-4 text-slate-500">
                       {tx.description}
                     </td>

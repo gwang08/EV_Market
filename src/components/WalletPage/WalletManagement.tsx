@@ -64,7 +64,7 @@ function WalletManagement() {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-200/20 rounded-full blur-3xl"></div>
         <div className="absolute top-[30vh] left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-purple-200/20 rounded-full blur-3xl"></div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-16 relative">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-16 py-16 relative">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
