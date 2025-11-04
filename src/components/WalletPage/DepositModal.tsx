@@ -82,6 +82,7 @@ const DepositModal: React.FC<DepositModalProps> = ({
       const response: DepositResponse = await makeDeposit({
         amount: depositAmount,
         paymentMethod: "MOMO",
+        redirectUrl: `${window.location.origin}/wallet`,
       });
       if (response.data.resultCode === 0) {
         success(t("wallet.depositRequestCreated"));

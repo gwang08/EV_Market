@@ -103,7 +103,7 @@ function ProductShowcase() {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-bold">
-            ${vehicles[currentIndex].price.toLocaleString()}
+            {vehicles[currentIndex].price.toLocaleString()} VNĐ
           </p>
         </motion.div>
       </div>

@@ -9,6 +9,7 @@ export interface CheckoutRequest {
   listingId: string
   listingType: ListingType
   paymentMethod: PaymentMethod
+  redirectUrl?: string
 }
 
 // Complete payment with wallet using a transactionId returned from checkout()

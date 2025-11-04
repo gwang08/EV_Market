@@ -108,10 +108,7 @@ export default function ContractModal({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
+    return new Intl.NumberFormat("vi-VN").format(amount) + " VNĐ";
   };
 
   const formatDate = (date?: string) => {

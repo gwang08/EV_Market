@@ -57,13 +57,13 @@ function ProductGrid({
     switch (sortBy) {
       case "priceLow":
         return (
-          (parseFloat(a.price.replace(/[$,]/g, "")) || 0) -
-          (parseFloat(b.price.replace(/[$,]/g, "")) || 0)
+          (parseFloat(a.price.replace(/[,VNĐ\s]/g, "")) || 0) -
+          (parseFloat(b.price.replace(/[,VNĐ\s]/g, "")) || 0)
         );
       case "priceHigh":
         return (
-          (parseFloat(b.price.replace(/[$,]/g, "")) || 0) -
-          (parseFloat(a.price.replace(/[$,]/g, "")) || 0)
+          (parseFloat(b.price.replace(/[,VNĐ\s]/g, "")) || 0) -
+          (parseFloat(a.price.replace(/[,VNĐ\s]/g, "")) || 0)
         );
       case "rating":
         return (b.rating || 0) - (a.rating || 0);

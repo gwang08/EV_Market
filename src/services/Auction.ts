@@ -165,15 +165,10 @@ export const payDeposit = async (
 }
 
 /**
- * Format currency for display
+ * Format currency for display - VNĐ format
  */
 export const formatAuctionPrice = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ'
 }
 
 /**

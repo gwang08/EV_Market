@@ -193,7 +193,7 @@ function MyListings() {
           id: v.id,
           type: "vehicle" as const,
           title: v.title,
-          price: `$${Number(v.price).toLocaleString()}`,
+          price: `${Number(v.price).toLocaleString()} VNĐ`,
           status: v.status === "SOLD" ? "sold" : "active",
           image: v.images?.[0] || "/Homepage/TopCar.png",
           specs: {
@@ -212,7 +212,7 @@ function MyListings() {
         id: b.id,
         type: "battery" as const,
         title: b.title,
-        price: `$${Number(b.price).toLocaleString()}`,
+        price: `${Number(b.price).toLocaleString()} VNĐ`,
         status: b.status === "SOLD" ? "sold" : "active",
         image: b.images?.[0] || "/Homepage/Car.png",
         specs: {

@@ -209,7 +209,7 @@ function TopBattery() {
                       {battery.title}
                     </h3>
                     <span className="text-2xl font-bold text-indigo-700 group-hover:text-blue-700 transition-colors duration-200 mt-1">
-                      ${battery.price.toLocaleString()}
+                      {battery.price.toLocaleString()} VNĐ
                     </span>
                   </motion.div>
                   <motion.div

@@ -19,7 +19,7 @@ const WalletBalance: React.FC<WalletBalanceProps> = ({
           Current Balance
         </h2>
         <span className="text-5xl font-extrabold text-blue-700 drop-shadow-lg mb-2">
-          ${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          {balance.toLocaleString("vi-VN", { minimumFractionDigits: 0 })} VNĐ
         </span>
         <div className="flex gap-6 mt-4">
           <motion.button
