@@ -18,6 +18,7 @@ export interface WalletResponse {
 
 export interface DepositRequest {
   amount: number;
+  paymentMethod: 'MOMO';
 }
 
 export interface DepositResponse {

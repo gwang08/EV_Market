@@ -104,7 +104,7 @@ function CarDetailPage() {
   }
 
   return (
-    <div className="min-h-screen mt-25">
+    <div className="min-h-screen pt-25">
       {/* Hero Section */}
       <CarDetailHero vehicle={vehicle} />
 
