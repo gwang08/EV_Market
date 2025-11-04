@@ -261,7 +261,7 @@ export default function BatteriesList() {
                     {battery.title}
                   </h3>
                   <span className="text-lg font-bold text-green-600 whitespace-nowrap">
-                    ${battery.price.toLocaleString()}
+                    {battery.price.toLocaleString()} VNĐ
                   </span>
                 </div>
 

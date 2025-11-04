@@ -48,6 +48,15 @@ export default function CreateAuctionModal({
   const startingPriceInput = useCurrencyInput("");
   const bidIncrementInput = useCurrencyInput("");
   const depositAmountInput = useCurrencyInput("");
+  
+  // Auto-calculate bid increment as 10% of starting price
+  React.useEffect(() => {
+    const startingPrice = Number(startingPriceInput.rawValue);
+    if (startingPrice > 0) {
+      const autoIncrement = Math.round(startingPrice * 0.1);
+      bidIncrementInput.setValue(String(autoIncrement));
+    }
+  }, [startingPriceInput.rawValue]);
 
   // Vehicle specific
   const [model, setModel] = useState("");
@@ -508,6 +517,7 @@ export default function CreateAuctionModal({
                   <div>
                     <label className="block text-xs font-medium mb-1.5" style={{ color: colors.Text }}>
                       {t("auctions.bidIncrement")} <span className="text-red-500">*</span>
+                      <span className="text-xs text-gray-500 ml-2">(Tự động = 10% giá khởi điểm)</span>
                     </label>
                     <input
                       type="text"
@@ -517,7 +527,7 @@ export default function CreateAuctionModal({
                       className={`w-full px-3 py-2 text-sm rounded-lg border transition-all ${
                         hasFieldError(errors, 'bidIncrement') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                       } focus:ring-1`}
-                      placeholder="100,000"
+                      placeholder="Tự động tính toán"
                     />
                     {getFieldError(errors, 'bidIncrement') && <p className="text-xs text-red-600 mt-1">{t(getFieldError(errors, 'bidIncrement')!)}</p>}
                   </div>

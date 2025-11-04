@@ -200,7 +200,7 @@ export default function TopEV() {
                       {vehicle.title}
                     </h3>
                     <span className="text-2xl font-bold text-indigo-700 group-hover:text-blue-700 transition-colors duration-200 mt-1">
-                      ${vehicle.price.toLocaleString()}
+                      {vehicle.price.toLocaleString()} VNĐ
                     </span>
                   </motion.div>
                   {/* Info row */}

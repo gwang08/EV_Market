@@ -306,7 +306,7 @@ export default function VehiclesList() {
                     {vehicle.title}
                   </h3>
                   <span className="text-lg font-bold text-green-600 whitespace-nowrap">
-                    ${vehicle.price.toLocaleString()}
+                    {vehicle.price.toLocaleString()} VNĐ
                   </span>
                 </div>
 

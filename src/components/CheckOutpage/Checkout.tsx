@@ -382,6 +382,7 @@ export default function Checkout() {
           listingId: pendingPaymentData.listingId,
           listingType: pendingPaymentData.listingType as "VEHICLE" | "BATTERY",
           paymentMethod: pendingPaymentData.paymentMethod,
+          redirectUrl: `${window.location.origin}/checkout/result`,
         });
 
         if (pendingPaymentData.paymentMethod === "MOMO") {

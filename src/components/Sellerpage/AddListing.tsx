@@ -994,7 +994,7 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
                   </span>
                   <span className="text-base font-bold text-gray-900">
                     {form.price
-                      ? `$${Number(form.price).toLocaleString()}`
+                      ? `${Number(form.price).toLocaleString()} VNĐ`
                       : "-"}
                   </span>
                 </div>
