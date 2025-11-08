@@ -115,8 +115,7 @@ export {
   getAuctionRequests,
   reviewAuctionRequest,
   approveListing,
-  getAdminStats,
-  getPendingListings
+  getAdminStats
 } from './Admin'
 
 // Export types
