@@ -6,7 +6,7 @@ import AdminTopbar from "@/components/Admin/AdminTopbar";
 import DashboardStats from "@/components/Admin/DashboardStats";
 import { getAdminStats } from "@/services/Admin";
 import { AdminStats } from "@/types/admin";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,6 +24,13 @@ function AdminDashboard() {
 
   useEffect(() => {
     loadStats();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      loadStats();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadStats = async () => {
@@ -53,13 +60,24 @@ function AdminDashboard() {
         {/* Content */}
         <main className="p-4 lg:p-8">
           {/* Welcome Section */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Chào mừng trở lại! 👋
-            </h2>
-            <p className="text-gray-600">
-              Quản lý toàn bộ hệ thống EcoTrade EV tại đây
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                Chào mừng trở lại! 👋
+              </h2>
+              <p className="text-gray-600">
+                Quản lý toàn bộ hệ thống EcoTrade EV tại đây
+              </p>
+            </div>
+            <button
+              onClick={loadStats}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title="Làm mới dữ liệu"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </button>
           </div>
 
           {/* Stats */}

@@ -28,6 +28,7 @@ import {
   getContractByVehicleId,
   signContractAsBuyer,
 } from "@/services/Contract";
+import { getMyTransactions } from "@/services/Transaction";
 
 export default function Checkout() {
   const { t } = useI18nContext();
@@ -159,6 +160,28 @@ export default function Checkout() {
       try {
         setProductLoading(true);
         setProductError(null);
+
+        // Check if user already purchased this product
+        try {
+          const transactionsRes = await getMyTransactions(1, 100); // Get enough to check
+          const alreadyPurchased = transactionsRes.data.transactions.some(
+            (t) =>
+              (t.vehicleId === listingId || t.batteryId === listingId) &&
+              t.status === "COMPLETED"
+          );
+
+          if (alreadyPurchased) {
+            toast.error(
+              "Bạn đã mua sản phẩm này rồi. Đang chuyển đến lịch sử mua hàng..."
+            );
+            setTimeout(() => router.push("/purchase-history"), 1500);
+            return;
+          }
+        } catch (err) {
+          console.log("Could not check purchase history:", err);
+          // Continue anyway - don't block checkout if purchase history check fails
+        }
+
         if (listingType === "VEHICLE") {
           const res = await getVehicleById(listingId);
           if (!mounted) return;
@@ -172,7 +195,7 @@ export default function Checkout() {
             toast.error(
               "Sản phẩm này đã được bán. Vui lòng chọn sản phẩm khác."
             );
-            setTimeout(() => router.push("/vehicles"), 1500);
+            setTimeout(() => router.push("/browse"), 1500);
             return;
           }
 
@@ -198,7 +221,7 @@ export default function Checkout() {
             toast.error(
               "Sản phẩm này đã được bán. Vui lòng chọn sản phẩm khác."
             );
-            setTimeout(() => router.push("/batteries"), 1500);
+            setTimeout(() => router.push("/browse"), 1500);
             return;
           }
 
@@ -239,11 +262,11 @@ export default function Checkout() {
         toast.success(
           "Thanh toán MoMo thành công! Đơn hàng của bạn đã được xác nhận."
         );
-        setTimeout(() => router.push("/"), 1500);
+        setTimeout(() => router.push("/purchase-history"), 1500);
       } else {
         // Failed
         toast.error(`Thanh toán MoMo thất bại. Mã lỗi: ${resultCode}`);
-        setTimeout(() => router.push("/"), 2000);
+        setTimeout(() => router.push("/browse"), 2000);
       }
       return; // Don't proceed with normal auth check
     }
@@ -382,7 +405,6 @@ export default function Checkout() {
           listingId: pendingPaymentData.listingId,
           listingType: pendingPaymentData.listingType as "VEHICLE" | "BATTERY",
           paymentMethod: pendingPaymentData.paymentMethod,
-          redirectUrl: `${window.location.origin}/checkout/result`,
         });
 
         if (pendingPaymentData.paymentMethod === "MOMO") {
@@ -415,7 +437,7 @@ export default function Checkout() {
               setWalletBalance(bal.data?.availableBalance ?? null);
             } catch {}
             toast.success(payRes?.message || "Thanh toán bằng ví thành công!");
-            setTimeout(() => router.push("/"), 1500);
+            setTimeout(() => router.push("/purchase-history"), 1500);
           } catch (e: any) {
             toast.error(e?.message || "Thanh toán ví thất bại");
           }

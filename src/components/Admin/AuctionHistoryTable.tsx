@@ -40,6 +40,11 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
         className: "bg-red-100 text-red-800 border-red-200",
         icon: <XCircle className="w-3.5 h-3.5" />,
       },
+      AUCTION_PAYMENT_PENDING: {
+        label: "Chờ thanh toán",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        icon: <Clock className="w-3.5 h-3.5" />,
+      },
     };
 
     const config = statusConfig[status] || {

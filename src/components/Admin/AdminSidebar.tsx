@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   History,
+  FileCheck,
 } from "lucide-react";
 import { useI18nContext } from "@/providers/I18nProvider";
 
@@ -61,7 +62,12 @@ export default function AdminSidebar({ isOpen, toggleSidebar }: SidebarProps) {
       href: "/admin/fees",
       key: "fees",
     },
- 
+    // {
+    //   icon: FileCheck,
+    //   label: "Quản lý hợp đồng",
+    //   href: "/admin/contracts",
+    //   key: "contracts",
+    // },
   ];
 
   return (

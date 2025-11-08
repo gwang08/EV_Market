@@ -81,3 +81,66 @@ export interface AdminStats {
   revenue: number;
   pendingAuctions: number;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string | null;
+  role: "ADMIN" | "MEMBER" | "STAFF";
+  isVerified: boolean;
+  isLocked: boolean;
+  lockReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Fee {
+  id: string;
+  type: "REGULAR_SALE" | "AUCTION_SALE";
+  percentage: number;
+  description: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Listing {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  images: string[];
+  status: string;
+  brand: string;
+  model?: string;
+  capacity?: number;
+  year: number;
+  mileage?: number;
+  health?: number | null;
+  specifications?: any;
+  isAuction: boolean;
+  auctionStartsAt: string | null;
+  auctionEndsAt: string | null;
+  startingPrice: number | null;
+  bidIncrement: number | null;
+  depositAmount: number | null;
+  isVerified: boolean;
+  auctionRejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sellerId: string;
+  seller: {
+    id: string;
+    email: string;
+    name: string;
+    avatar: string | null;
+    role: string;
+    isVerified: boolean;
+    isLocked: boolean;
+    lockReason: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  type: "VEHICLE" | "BATTERY";
+}
