@@ -141,6 +141,7 @@
     "tabs": {
       "dashboard": "Dashboard",
       "listings": "My Listings",
+      "orders": "Orders",
       "addListing": "Add Listing"
     },
     "stats": {
@@ -352,6 +353,40 @@
       "auctionStart": "Auction Start Time",
       "auctionEnd": "Auction End Time",
       "auctionNote": "Your auction will be reviewed by admin before going live. You'll be notified once approved."
+    },
+    "orders": {
+      "title": "My Orders",
+      "subtitle": "Manage and ship your orders",
+      "noOrders": "No Orders Yet",
+      "noOrdersDesc": "You haven't sold any products yet.",
+      "loadError": "Failed to load orders",
+      "retry": "Retry",
+      "price": "Price",
+      "soldDate": "Sold Date",
+      "productId": "Product ID",
+      "transactionId": "Order ID",
+      "paymentMethod": "Payment Method",
+      "date": "Date",
+      "shipOrder": "Ship Order",
+      "shipped": "Shipped",
+      "completed": "Completed",
+      "needTransactionId": "Transaction ID needed. This feature requires backend transaction lookup by product ID.",
+      "shipSuccess": "Order marked as shipped successfully!",
+      "shipError": "Failed to mark order as shipped. Please try again.",
+      "previous": "Previous",
+      "next": "Next",
+      "status": {
+        "pending": "Pending",
+        "paid": "Paid",
+        "shipped": "Shipped",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded"
+      },
+      "productType": {
+        "vehicle": "Vehicle",
+        "battery": "Battery"
+      }
     },
     "auction": {
       "title": "Open Auction",
@@ -663,6 +698,9 @@
     "manageDescription": "Manage your funds for auctions and purchases on EcoTrade EV",
     "currentBalance": "Current Balance",
     "availableBalance": "Available Balance",
+    "lockedBalance": "Locked Balance",
+    "lockedSection": "Locked Funds",
+    "lockedDescription": "This amount is being held for auctions or pending transactions",
     "depositFunds": "Deposit Funds",
     "depositDescription": "Deposit funds to your wallet to participate in auctions",
     "withdraw": "Withdraw",
@@ -705,7 +743,6 @@
     "auctionFundsHold": "Auction Funds Hold",
     "auctionFundsDescription": "Funds held for your active auction bids",
     "temporarilyLocked": "Temporarily Locked",
-    "lockedDescription": "These funds are held for your active auction bids and will be released when auctions end.",
     "importantNote": "Important Note",
     "warningMessage": "Funds will be automatically released when auction ends if you don't win the auction, or when you complete the payment if you win.",
     "depositAmount": "Deposit Amount",
@@ -753,9 +790,15 @@
     "viewDetails": "View Details",
     "writeReview": "Write Review",
     "reviewed": "Reviewed",
+    "shipOrder": "Mark as Shipped",
+    "shipping": "Shipping...",
+    "shipSuccess": "Order marked as shipped successfully!",
+    "shipError": "Failed to mark order as shipped. Please try again.",
     "status": {
       "completed": "Completed",
       "pending": "Pending",
+      "paid": "Paid",
+      "shipped": "Shipped",
       "cancelled": "Cancelled",
       "refunded": "Refunded"
     },

@@ -9,6 +9,7 @@ import RecentActivity from "@/components/Sellerpage/RecentActivity";
 import TipsForSellers from "@/components/Sellerpage/TipsForSellers";
 import MyListings from "@/components/Sellerpage/MyListings";
 import AddListing from "@/components/Sellerpage/AddListing";
+import SellerOrders from "@/components/Sellerpage/SellerOrders";
 import MemberOnlyWrapper from "../../components/common/MemberOnlyWrapper";
 
 export default function SellPage() {
@@ -33,6 +34,9 @@ export default function SellPage() {
 
       case "listings":
         return <MyListings />;
+
+      case "orders":
+        return <SellerOrders />;
 
       case "add":
         return <AddListing onSuccess={() => setActiveTab("listings")} />;

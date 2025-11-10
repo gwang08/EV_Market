@@ -319,7 +319,10 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     // Require description at create time; stay on Review & Submit (step 5)
     if (!form.description || !form.description.trim()) {
       setErrors([
-        { field: "description", message: t("seller.addListing.validation.required") },
+        {
+          field: "description",
+          message: t("seller.addListing.validation.required"),
+        },
       ]);
       setCurrentStep(5);
       showError(t("seller.addListing.validation.required"));
@@ -419,7 +422,8 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
 
       // Success - show message and refresh
       success(
-        result.message || t("toast.createSuccess", "Listing created successfully!")
+        result.message ||
+          t("toast.createSuccess", "Listing created successfully!")
       );
 
       // Refresh cache to show new listing immediately

@@ -15,18 +15,22 @@ export interface TransactionVehicle {
   id: string
   title: string
   images: string[]
+  sellerId: string
+  status: 'AVAILABLE' | 'SOLD' | 'PENDING' | 'REJECTED'
 }
 
 export interface TransactionBattery {
   id: string
   title: string
   images: string[]
+  sellerId: string
+  status: 'AVAILABLE' | 'SOLD' | 'PENDING' | 'REJECTED'
 }
 
 export interface Transaction {
   id: string
   buyerId: string
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
   vehicleId: string | null
   batteryId: string | null
   finalPrice: number
@@ -81,12 +85,16 @@ export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'COMPLETED':
       return 'bg-green-100 text-green-800'
+    case 'PAID':
+      return 'bg-blue-100 text-blue-800'
+    case 'SHIPPED':
+      return 'bg-purple-100 text-purple-800'
     case 'PENDING':
       return 'bg-yellow-100 text-yellow-800'
     case 'CANCELLED':
       return 'bg-red-100 text-red-800'
     case 'REFUNDED':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-gray-100 text-gray-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -242,6 +250,61 @@ export const payAuctionTransaction = async (
     return data
   } catch (error) {
     console.error('Failed to pay auction transaction:', error)
+    throw error
+  }
+}
+
+/**
+ * Mark transaction as shipped (for seller)
+ * @param transactionId - The transaction ID
+ */
+export interface ShipTransactionResponse {
+  message: string
+  data: {
+    transaction: {
+      id: string
+      buyerId: string
+      status: string
+      confirmationDeadline: string
+      paymentDeadline: string
+      type: string
+      vehicleId: string | null
+      batteryId: string | null
+      finalPrice: number
+      paymentGateway: string
+      paymentDetail: any
+      createdAt: string
+      updatedAt: string
+    }
+  }
+}
+
+export const shipTransaction = async (
+  transactionId: string
+): Promise<ShipTransactionResponse> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/ship`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to ship transaction:', error)
     throw error
   }
 }

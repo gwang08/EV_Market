@@ -131,6 +131,18 @@ function WalletManagement() {
                         <p className="text-blue-100 text-base mt-2 font-medium">
                           {t("wallet.availableBalance", "Số dư khả dụng")}
                         </p>
+
+                        {/* Locked Balance */}
+                        {walletData && walletData.lockedBalance > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/20">
+                            <span className="text-2xl font-bold text-white/90 block">
+                              {formatCurrency(walletData.lockedBalance)}
+                            </span>
+                            <p className="text-blue-100 text-sm mt-1 font-medium">
+                              {t("wallet.lockedBalance", "Số dư đang bị khóa")}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -179,16 +191,6 @@ function WalletManagement() {
                 </div>
               </div>
             </div>
-            {/* Accrual Funds Hold */}
-            {/* <div>
-              <h2 className="text-xl font-bold text-indigo-900 mb-4">
-                {t("wallet.lockedSection", "Tiền tạm giữ")}
-              </h2>
-              <AccrualFundsHold
-                holdAmount={walletData?.lockedBalance || 0}
-                description={t("wallet.lockedDescription")}
-              />
-            </div> */}
           </div>
           {/* Right Column: Transaction History only */}
           <div className="flex flex-col gap-12 xl:col-span-2">

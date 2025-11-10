@@ -137,6 +137,7 @@
     "tabs": {
       "dashboard": "Bảng điều khiển",
       "listings": "Tin đăng của tôi",
+      "orders": "Đơn hàng",
       "addListing": "Thêm tin đăng"
     },
     "stats": {
@@ -348,6 +349,40 @@
       "auctionStart": "Thời gian bắt đầu đấu giá",
       "auctionEnd": "Thời gian kết thúc đấu giá",
       "auctionNote": "Phiên đấu giá của bạn sẽ được quản trị viên xem xét trước khi được phê duyệt. Bạn sẽ nhận được thông báo khi được phê duyệt."
+    },
+    "orders": {
+      "title": "Đơn hàng của tôi",
+      "subtitle": "Quản lý và giao hàng đơn hàng của bạn",
+      "noOrders": "Chưa có đơn hàng",
+      "noOrdersDesc": "Bạn chưa có sản phẩm nào được bán.",
+      "loadError": "Không thể tải đơn hàng",
+      "retry": "Thử lại",
+      "price": "Giá",
+      "soldDate": "Ngày bán",
+      "productId": "Mã sản phẩm",
+      "transactionId": "Mã đơn hàng",
+      "paymentMethod": "Phương thức thanh toán",
+      "date": "Ngày",
+      "shipOrder": "Giao hàng",
+      "shipped": "Đã giao hàng",
+      "completed": "Hoàn thành",
+      "needTransactionId": "Cần mã giao dịch. Tính năng này cần tích hợp backend để tìm giao dịch theo mã sản phẩm.",
+      "shipSuccess": "Đã đánh dấu đơn hàng là đã giao thành công!",
+      "shipError": "Không thể đánh dấu đơn hàng là đã giao. Vui lòng thử lại.",
+      "previous": "Trước",
+      "next": "Sau",
+      "status": {
+        "pending": "Đang xử lý",
+        "paid": "Đã thanh toán",
+        "shipped": "Đã giao hàng",
+        "completed": "Hoàn thành",
+        "cancelled": "Đã hủy",
+        "refunded": "Đã hoàn tiền"
+      },
+      "productType": {
+        "vehicle": "Xe điện",
+        "battery": "Pin"
+      }
     },
     "auction": {
       "title": "Mở đấu giá",
@@ -632,6 +667,9 @@
     "manageDescription": "Quản lý số tiền của bạn cho đấu giá và mua hàng trên EcoTrade EV",
     "currentBalance": "Số dư hiện tại",
     "availableBalance": "Số dư khả dụng",
+    "lockedBalance": "Số dư đang bị khóa",
+    "lockedSection": "Tiền đang bị khóa",
+    "lockedDescription": "Số tiền này đang được giữ cho đấu giá hoặc giao dịch đang chờ xử lý",
     "depositFunds": "Nạp tiền",
     "depositDescription": "Nạp tiền vào ví để tham gia đấu giá",
     "withdraw": "Rút tiền",
@@ -674,7 +712,6 @@
     "auctionFundsHold": "Tiền giữ đấu giá",
     "auctionFundsDescription": "Số tiền giữ cho các lượt đấu giá đang hoạt động",
     "temporarilyLocked": "Số tiền tạm giữ",
-    "lockedDescription": "Số tiền này được giữ cho các lượt đấu giá đang hoạt động và sẽ được giải phóng khi đấu giá kết thúc.",
     "importantNote": "Lưu ý quan trọng",
     "warningMessage": "Tiền sẽ được tự động giải phóng khi đấu giá kết thúc nếu bạn không thắng đấu giá, hoặc khi bạn hoàn tất thanh toán nếu bạn thắng.",
     "depositAmount": "Số tiền nạp",
@@ -722,9 +759,15 @@
     "viewDetails": "Xem chi tiết",
     "writeReview": "Viết đánh giá",
     "reviewed": "Đã đánh giá",
+    "shipOrder": "Đánh dấu đã giao hàng",
+    "shipping": "Đang giao...",
+    "shipSuccess": "Đã đánh dấu đơn hàng là đã giao thành công!",
+    "shipError": "Không thể đánh dấu đơn hàng là đã giao. Vui lòng thử lại.",
     "status": {
       "completed": "Hoàn thành",
       "pending": "Đang xử lý",
+      "paid": "Đã thanh toán",
+      "shipped": "Đã giao hàng",
       "cancelled": "Đã hủy",
       "refunded": "Đã hoàn tiền"
     },

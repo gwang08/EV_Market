@@ -23,6 +23,8 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
   const statusLabels: Record<string, string> = {
     COMPLETED: t("purchaseHistory.status.completed", "Completed"),
     PENDING: t("purchaseHistory.status.pending", "Pending"),
+    PAID: t("purchaseHistory.status.paid", "Paid"),
+    SHIPPED: t("purchaseHistory.status.shipped", "Shipped"),
     CANCELLED: t("purchaseHistory.status.cancelled", "Cancelled"),
     REFUNDED: t("purchaseHistory.status.refunded", "Refunded"),
   };
