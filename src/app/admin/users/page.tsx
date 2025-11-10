@@ -8,7 +8,13 @@ import UserTable from "@/components/Admin/UserTable";
 import Pagination from "@/components/common/Pagination";
 import { getUsers, lockUser, unlockUser } from "@/services/Admin";
 import { User } from "@/types/admin";
-import { Loader2, AlertCircle, Search, Filter, Users as UsersIcon } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  Search,
+  Filter,
+  Users as UsersIcon,
+} from "lucide-react";
 import { useToast } from "@/providers/ToastProvider";
 
 function UsersManagementPage() {
@@ -20,7 +26,9 @@ function UsersManagementPage() {
   const [totalResults, setTotalResults] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
+    "all"
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const { success, error } = useToast();
 
