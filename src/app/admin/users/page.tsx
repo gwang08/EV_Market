@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import RoleAuthWrapper from "@/components/common/RoleAuthWrapper";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminTopbar from "@/components/Admin/AdminTopbar";
@@ -8,10 +8,8 @@ import UserTable from "@/components/Admin/UserTable";
 import Pagination from "@/components/common/Pagination";
 import { getUsers, lockUser, unlockUser } from "@/services/Admin";
 import { User } from "@/types/admin";
-import { Loader2, AlertCircle, Search, Filter } from "lucide-react";
+import { Loader2, AlertCircle, Search, Filter, Users as UsersIcon } from "lucide-react";
 import { useToast } from "@/providers/ToastProvider";
-import { getUsers } from "@/services/Admin";
-import { User } from "@/types/admin";
 
 function UsersManagementPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,17 +18,11 @@ function UsersManagementPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
-  const { success, error } = useToast();
-
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">(
-    "all"
-  );
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "locked">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const { success, error } = useToast();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -87,7 +79,7 @@ function UsersManagementPage() {
 
   const fetchUsers = async (page = 1) => {
     setLoading(true);
-    setError(null); // Reset error
+    setErrorMessage(null); // Reset error
     try {
       const result = await getUsers(page, 10);
       if (result.success && result.data) {
@@ -95,10 +87,10 @@ function UsersManagementPage() {
         setTotalPages(result.data.totalPages);
         setCurrentPage(result.data.page);
       } else {
-        setError(result.message || "Không thể tải danh sách người dùng");
+        setErrorMessage(result.message || "Không thể tải danh sách người dùng");
       }
     } catch (err) {
-      setError("Có lỗi xảy ra khi tải danh sách người dùng");
+      setErrorMessage("Có lỗi xảy ra khi tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
@@ -177,7 +169,7 @@ function UsersManagementPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="w-6 h-6 text-blue-600" />
+                  <UsersIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">
@@ -192,7 +184,7 @@ function UsersManagementPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-green-100 rounded-lg">
-                  <Users className="w-6 h-6 text-green-600" />
+                  <UsersIcon className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">
@@ -207,7 +199,7 @@ function UsersManagementPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-red-100 rounded-lg">
-                  <Users className="w-6 h-6 text-red-600" />
+                  <UsersIcon className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Đã khóa</p>
@@ -220,15 +212,15 @@ function UsersManagementPage() {
           </div>
 
           {/* Content */}
-          {error ? (
+          {errorMessage ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-red-600" />
+                <UsersIcon className="w-8 h-8 text-red-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Có lỗi xảy ra
               </h3>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <p className="text-gray-600 mb-4">{errorMessage}</p>
               <button
                 onClick={() => fetchUsers()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

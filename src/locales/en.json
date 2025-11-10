@@ -357,15 +357,21 @@
     "orders": {
       "title": "My Orders",
       "subtitle": "Manage and ship your orders",
+      "totalOrders": "Total Orders",
+      "pendingShipment": "Pending Shipment",
+      "completedOrders": "Completed",
       "noOrders": "No Orders Yet",
       "noOrdersDesc": "When customers purchase your products, they will appear here.",
       "loadError": "Failed to load orders",
+      "errorTitle": "Error",
+      "tryAgain": "Try Again",
       "retry": "Retry",
       "price": "Price",
       "buyer": "Buyer",
       "soldDate": "Sold Date",
       "productId": "Product ID",
       "transactionId": "Order ID",
+      "orderId": "Order ID",
       "transactionDate": "Transaction Date",
       "paymentMethod": "Payment Method",
       "date": "Date",
@@ -385,7 +391,8 @@
         "shipped": "Shipped",
         "completed": "Completed",
         "cancelled": "Cancelled",
-        "refunded": "Refunded"
+        "refunded": "Refunded",
+        "disputed": "Disputed"
       },
       "productType": {
         "vehicle": "Vehicle",

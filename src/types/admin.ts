@@ -6,23 +6,6 @@ export interface AdminUser {
   role: "ADMIN";
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "MEMBER" | "ADMIN";
-  avatar?: string;
-  isActive: boolean;
-  isLocked: boolean;
-  lockReason?: string;
-  createdAt: string;
-  updatedAt: string;
-  _count?: {
-    vehicles: number;
-    batteries: number;
-  };
-}
-
 export interface UsersResponse {
   message: string;
   data: {
@@ -117,10 +100,15 @@ export interface User {
   avatar: string | null;
   role: "ADMIN" | "MEMBER" | "STAFF";
   isVerified: boolean;
+  isActive?: boolean;
   isLocked: boolean;
   lockReason: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    vehicles: number;
+    batteries: number;
+  };
 }
 
 export interface Fee {
