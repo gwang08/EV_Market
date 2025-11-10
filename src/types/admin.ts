@@ -6,6 +6,34 @@ export interface AdminUser {
   role: "ADMIN";
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "MEMBER" | "ADMIN";
+  avatar?: string;
+  isActive: boolean;
+  isLocked: boolean;
+  lockReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    vehicles: number;
+    batteries: number;
+  };
+}
+
+export interface UsersResponse {
+  message: string;
+  data: {
+    users: User[];
+    page: number;
+    limit: number;
+    totalPages: number;
+    totalResults: number;
+  };
+}
+
 export interface AuctionRequest {
   id: string;
   title: string;

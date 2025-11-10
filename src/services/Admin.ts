@@ -562,3 +562,112 @@ export const resolveDispute = async (
     };
   }
 };
+
+// Get all users
+export const getUsers = async (page = 1, limit = 10) => {
+  try {
+    const token = await ensureValidToken();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/users?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch users");
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};
+
+// Lock user
+export const lockUser = async (userId: string, lockReason: string) => {
+  try {
+    const token = await ensureValidToken();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/users/${userId}/lock`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ lockReason }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to lock user");
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error locking user:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};
+
+// Unlock user
+export const unlockUser = async (userId: string) => {
+  try {
+    const token = await ensureValidToken();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/users/${userId}/unlock`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to unlock user");
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error unlocking user:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};
