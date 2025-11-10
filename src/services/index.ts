@@ -100,7 +100,8 @@ export {
   payAuctionTransaction,
   getPendingAuctionTransaction,
   shipTransaction,
-  confirmReceipt
+  confirmReceipt,
+  disputeTransaction
 } from './Transaction'
 
 // Export Auction services
@@ -180,7 +181,8 @@ export type {
   PayAuctionRequest,
   PayAuctionResponse,
   ShipTransactionResponse,
-  ConfirmReceiptResponse
+  ConfirmReceiptResponse,
+  DisputeTransactionResponse
 } from './Transaction'
 
 export type {

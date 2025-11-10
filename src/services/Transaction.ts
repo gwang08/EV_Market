@@ -123,6 +123,8 @@ export const getStatusColor = (status: string): string => {
       return 'bg-red-100 text-red-800'
     case 'REFUNDED':
       return 'bg-gray-100 text-gray-800'
+    case 'DISPUTED':
+      return 'bg-orange-100 text-orange-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -388,6 +390,76 @@ export const confirmReceipt = async (
     return data
   } catch (error) {
     console.error('Failed to confirm receipt:', error)
+    throw error
+  }
+}
+
+/**
+ * Dispute a transaction (for buyer)
+ * @param transactionId - The transaction ID
+ * @param reason - Reason for dispute
+ * @param images - Array of image files
+ */
+export interface DisputeTransactionResponse {
+  message: string
+  data: {
+    transaction: {
+      id: string
+      buyerId: string
+      status: string
+      confirmationDeadline: string
+      paymentDeadline: string | null
+      type: string
+      disputeReason: string
+      disputeImages: string[]
+      vehicleId: string | null
+      batteryId: string | null
+      finalPrice: number
+      paymentGateway: string
+      paymentDetail: any
+      createdAt: string
+      updatedAt: string
+    }
+  }
+}
+
+export const disputeTransaction = async (
+  transactionId: string,
+  reason: string,
+  images: File[]
+): Promise<DisputeTransactionResponse> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const formData = new FormData()
+    formData.append('reason', reason)
+    
+    // Append all images
+    images.forEach((image) => {
+      formData.append('images', image)
+    })
+
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/dispute`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // Note: Don't set Content-Type for FormData, browser will set it automatically with boundary
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to dispute transaction:', error)
     throw error
   }
 }
