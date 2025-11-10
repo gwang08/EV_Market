@@ -486,3 +486,79 @@ export const getAuctionHistory = async (page = 1, limit = 10, status?: string) =
     };
   }
 };
+
+// Get disputed transactions
+export const getDisputedTransactions = async (page = 1, limit = 10) => {
+  try {
+    const token = await ensureValidToken();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/transactions/disputed?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch disputed transactions");
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error fetching disputed transactions:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};
+
+// Resolve dispute (approve or reject)
+export const resolveDispute = async (
+  transactionId: string,
+  approved: boolean
+) => {
+  try {
+    const token = await ensureValidToken();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/transactions/${transactionId}/resolve-dispute`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ approved }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to resolve dispute");
+    }
+
+    return {
+      success: true,
+      data: data.data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error resolving dispute:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+};

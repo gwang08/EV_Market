@@ -930,5 +930,35 @@
       "paymentNotImplemented": "Chức năng thanh toán đang được triển khai",
       "transactionNotFound": "Không tìm thấy giao dịch"
     }
+  },
+  "admin": {
+    "disputes": {
+      "title": "Giải quyết khiếu nại",
+      "loadError": "Không thể tải danh sách khiếu nại",
+      "noDisputes": "Không có khiếu nại",
+      "noDisputesDesc": "Hiện tại không có khiếu nại nào cần xử lý.",
+      "transaction": "Giao dịch",
+      "buyer": "Người mua",
+      "seller": "Người bán",
+      "reason": "Lý do",
+      "amount": "Số tiền",
+      "actions": "Thao tác",
+      "viewDetails": "Xem chi tiết",
+      "previous": "Trước",
+      "next": "Sau",
+      "disputeDetails": "Chi tiết khiếu nại",
+      "productInfo": "Thông tin sản phẩm",
+      "productName": "Tên sản phẩm",
+      "buyerInfo": "Thông tin người mua",
+      "sellerInfo": "Thông tin người bán",
+      "disputeReason": "Lý do khiếu nại",
+      "evidence": "Hình ảnh minh chứng",
+      "reject": "Từ chối",
+      "approve": "Chấp nhận & Hoàn tiền",
+      "resolving": "Đang xử lý...",
+      "approveSuccess": "Đã chấp nhận khiếu nại và hoàn tiền cho người mua",
+      "rejectSuccess": "Đã từ chối khiếu nại",
+      "resolveError": "Không thể xử lý khiếu nại. Vui lòng thử lại."
+    }
   }
 }

@@ -941,5 +941,35 @@
       "paymentNotImplemented": "Payment feature is under development",
       "transactionNotFound": "Transaction not found"
     }
+  },
+  "admin": {
+    "disputes": {
+      "title": "Dispute Management",
+      "loadError": "Failed to load disputes",
+      "noDisputes": "No Disputes",
+      "noDisputesDesc": "There are no disputes to resolve at the moment.",
+      "transaction": "Transaction",
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "reason": "Reason",
+      "amount": "Amount",
+      "actions": "Actions",
+      "viewDetails": "View Details",
+      "previous": "Previous",
+      "next": "Next",
+      "disputeDetails": "Dispute Details",
+      "productInfo": "Product Information",
+      "productName": "Product Name",
+      "buyerInfo": "Buyer Information",
+      "sellerInfo": "Seller Information",
+      "disputeReason": "Dispute Reason",
+      "evidence": "Evidence Images",
+      "reject": "Reject Dispute",
+      "approve": "Approve & Refund",
+      "resolving": "Processing...",
+      "approveSuccess": "Dispute approved and buyer has been refunded",
+      "rejectSuccess": "Dispute rejected",
+      "resolveError": "Failed to resolve dispute. Please try again."
+    }
   }
 }
