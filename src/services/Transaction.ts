@@ -81,6 +81,34 @@ export const getMyTransactions = async (page: number = 1, limit: number = 10): P
   }
 }
 
+// Get seller's sales transactions
+export const getMySales = async (page: number = 1, limit: number = 10): Promise<TransactionsResponse> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/transactions/sales?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to fetch sales:', error)
+    throw error
+  }
+}
+
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case 'COMPLETED':
@@ -305,6 +333,61 @@ export const shipTransaction = async (
     return data
   } catch (error) {
     console.error('Failed to ship transaction:', error)
+    throw error
+  }
+}
+
+/**
+ * Confirm receipt of order (for buyer)
+ * @param transactionId - The transaction ID
+ */
+export interface ConfirmReceiptResponse {
+  message: string
+  data: {
+    transaction: {
+      id: string
+      buyerId: string
+      status: string
+      confirmationDeadline: string
+      paymentDeadline: string
+      type: string
+      vehicleId: string | null
+      batteryId: string | null
+      finalPrice: number
+      paymentGateway: string
+      paymentDetail: any
+      createdAt: string
+      updatedAt: string
+    }
+  }
+}
+
+export const confirmReceipt = async (
+  transactionId: string
+): Promise<ConfirmReceiptResponse> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/confirm-receipt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to confirm receipt:', error)
     throw error
   }
 }

@@ -2,109 +2,101 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useI18nContext } from "../../providers/I18nProvider";
-import { shipTransaction, getStatusColor } from "../../services/Transaction";
-import { getMyVehicles, Vehicle } from "../../services/Vehicle";
-import { getMyBatteries, Battery } from "../../services/Battery";
+import {
+  getMySales,
+  Transaction,
+  shipTransaction,
+  getStatusColor,
+  getPaymentGatewayName,
+} from "../../services/Transaction";
 import { formatCurrency } from "../../services/Wallet";
+import { useToast } from "../../hooks/useToast";
 import Image from "next/image";
-
-// Combined type for sold products
-type SoldProduct = (Vehicle | Battery) & {
-  productType: "vehicle" | "battery";
-  transactionId?: string;
-};
 
 export default function SellerOrders() {
   const { t } = useI18nContext();
-  const [soldProducts, setSoldProducts] = useState<SoldProduct[]>([]);
+  const toast = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const [shippingTransactionId, setShippingTransactionId] = useState<
+    string | null
+  >(null);
 
-  // Load seller's sold products
+  // Load seller's sales transactions
+  const fetchSales = async (page: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await getMySales(page, 10);
+
+      console.log("Sales transactions:", response.data.transactions);
+
+      setTransactions(response.data.transactions);
+      setTotalPages(response.data.totalPages);
+    } catch (err) {
+      console.error("Failed to fetch sales:", err);
+      setError(t("seller.orders.loadError", "Failed to load orders"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadSoldProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [vehiclesRes, batteriesRes] = await Promise.all([
-          getMyVehicles(),
-          getMyBatteries(),
-        ]);
-
-        const products: SoldProduct[] = [];
-
-        // Add sold vehicles
-        if (vehiclesRes.data?.vehicles) {
-          const soldVehicles = vehiclesRes.data.vehicles
-            .filter((v) => v.status === "SOLD")
-            .map((v) => ({ ...v, productType: "vehicle" as const }));
-          products.push(...soldVehicles);
-        }
-
-        // Add sold batteries
-        if (batteriesRes.data?.batteries) {
-          const soldBatteries = batteriesRes.data.batteries
-            .filter((b) => b.status === "SOLD")
-            .map((b) => ({ ...b, productType: "battery" as const }));
-          products.push(...soldBatteries);
-        }
-
-        // Sort by updatedAt (most recent first)
-        products.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-
-        console.log("Sold products:", products);
-        setSoldProducts(products);
-      } catch (err) {
-        console.error("Failed to load sold products:", err);
-        setError(t("seller.orders.loadError", "Failed to load orders"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSoldProducts();
-  }, []);
+    fetchSales(currentPage);
+  }, [currentPage]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  const handleShipOrder = async (productId: string) => {
+  const handleShipOrder = async (transactionId: string) => {
+    if (shippingTransactionId === transactionId) {
+      return; // Prevent double click
+    }
+
     try {
-      // Note: We need the transaction ID to ship, not just product ID
-      // For now, just show a message that we need transaction integration
-      alert(
+      setShippingTransactionId(transactionId);
+
+      await shipTransaction(transactionId);
+
+      toast.success(
         t(
-          "seller.orders.needTransactionId",
-          "Transaction ID needed. This feature requires backend transaction lookup by product ID."
+          "seller.orders.shipSuccess",
+          "Order has been marked as shipped successfully!"
         )
       );
 
-      // TODO: Need backend endpoint like GET /transactions/product/{productId}
-      // Then: await shipTransaction(transactionId);
+      // Refresh transactions after shipping
+      await fetchSales(currentPage);
     } catch (error) {
       console.error("Failed to ship order:", error);
-      alert(
+      toast.error(
         t(
           "seller.orders.shipError",
           "Failed to mark order as shipped. Please try again."
         )
       );
+    } finally {
+      setShippingTransactionId(null);
     }
   };
 
   // Pagination
-  const totalPages = Math.ceil(soldProducts.length / itemsPerPage);
-  const paginatedProducts = soldProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
 
   if (loading) {
     return (
@@ -119,7 +111,7 @@ export default function SellerOrders() {
       <div className="text-center py-12">
         <p className="text-red-600 text-lg">{error}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => fetchSales(currentPage)}
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           {t("seller.orders.retry", "Retry")}
@@ -128,7 +120,7 @@ export default function SellerOrders() {
     );
   }
 
-  if (soldProducts.length === 0) {
+  if (transactions.length === 0) {
     return (
       <div className="text-center py-12">
         <svg
@@ -150,7 +142,7 @@ export default function SellerOrders() {
         <p className="mt-2 text-gray-600">
           {t(
             "seller.orders.noOrdersDesc",
-            "You haven't received any orders yet."
+            "When customers purchase your products, they will appear here."
           )}
         </p>
       </div>
@@ -171,10 +163,15 @@ export default function SellerOrders() {
 
       {/* Orders List */}
       <div className="space-y-4">
-        {paginatedProducts.map((product) => {
+        {transactions.map((transaction) => {
+          const product = transaction.vehicle || transaction.battery;
+          const productType = transaction.vehicle ? "vehicle" : "battery";
+
+          if (!product) return null;
+
           return (
             <motion.div
-              key={product.id}
+              key={transaction.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 hover:shadow-xl transition-all"
@@ -183,7 +180,7 @@ export default function SellerOrders() {
                 {/* Product Image */}
                 <div className="w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
                   <Image
-                    src={product.images[0] || "/placeholder.png"}
+                    src={product.images?.[0] || "/placeholder.png"}
                     alt={product.title}
                     width={128}
                     height={128}
@@ -191,7 +188,7 @@ export default function SellerOrders() {
                   />
                 </div>
 
-                {/* Product Details */}
+                {/* Product & Transaction Details */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                     {product.title}
@@ -200,19 +197,26 @@ export default function SellerOrders() {
                   <div className="flex flex-wrap gap-2 mb-3">
                     <span
                       className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                        product.productType === "vehicle"
+                        productType === "vehicle"
                           ? "bg-blue-100 text-blue-700"
                           : "bg-green-100 text-green-700"
                       }`}
                     >
-                      {product.productType === "vehicle"
+                      {productType === "vehicle"
                         ? t("seller.orders.productType.vehicle", "Vehicle")
                         : t("seller.orders.productType.battery", "Battery")}
                     </span>
 
-                    {/* Product Status Badge */}
-                    <span className="px-3 py-1 rounded-lg text-sm font-semibold bg-orange-100 text-orange-700">
-                      {product.status}
+                    {/* Transaction Status Badge */}
+                    <span
+                      className={`px-3 py-1 rounded-lg text-sm font-semibold ${getStatusColor(
+                        transaction.status
+                      )}`}
+                    >
+                      {t(
+                        `seller.orders.status.${transaction.status.toLowerCase()}`,
+                        transaction.status
+                      )}
                     </span>
                   </div>
 
@@ -222,25 +226,33 @@ export default function SellerOrders() {
                         {t("seller.orders.price", "Price")}:
                       </span>
                       <span className="ml-2 font-bold text-green-600">
-                        {formatCurrency(product.price)}
+                        {formatCurrency(transaction.finalPrice)}
                       </span>
                     </div>
                     <div>
                       <span className="text-gray-600">
-                        {t("seller.orders.soldDate", "Sold Date")}:
+                        {t("seller.orders.buyer", "Buyer")}:
                       </span>
                       <span className="ml-2 font-semibold">
-                        {new Date(product.updatedAt).toLocaleDateString(
+                        {transaction.buyerId || "N/A"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">
+                        {t("seller.orders.transactionDate", "Date")}:
+                      </span>
+                      <span className="ml-2 font-semibold">
+                        {new Date(transaction.createdAt).toLocaleDateString(
                           "vi-VN"
                         )}
                       </span>
                     </div>
                     <div>
                       <span className="text-gray-600">
-                        {t("seller.orders.productId", "Product ID")}:
+                        {t("seller.orders.paymentMethod", "Payment")}:
                       </span>
-                      <span className="ml-2 font-mono text-xs">
-                        {product.id.slice(0, 8)}...
+                      <span className="ml-2 font-semibold">
+                        {getPaymentGatewayName(transaction.paymentGateway)}
                       </span>
                     </div>
                   </div>
@@ -248,27 +260,79 @@ export default function SellerOrders() {
 
                 {/* Action Button */}
                 <div className="flex items-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleShipOrder(product.id)}
-                    className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-semibold flex items-center gap-2"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  {transaction.status === "PAID" && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleShipOrder(transaction.id)}
+                      disabled={shippingTransactionId === transaction.id}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                      />
-                    </svg>
-                    <span>{t("seller.orders.shipOrder", "Ship Order")}</span>
-                  </motion.button>
+                      {shippingTransactionId === transaction.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          <span>
+                            {t("seller.orders.shipping", "Shipping...")}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                            />
+                          </svg>
+                          <span>
+                            {t("seller.orders.shipOrder", "Ship Order")}
+                          </span>
+                        </>
+                      )}
+                    </motion.button>
+                  )}
+                  {transaction.status === "SHIPPED" && (
+                    <div className="px-6 py-3 bg-green-100 text-green-700 rounded-xl font-semibold flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>{t("seller.orders.shipped", "Shipped")}</span>
+                    </div>
+                  )}
+                  {transaction.status === "COMPLETED" && (
+                    <div className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>{t("seller.orders.completed", "Completed")}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -280,33 +344,22 @@ export default function SellerOrders() {
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-6">
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
+            onClick={handlePrevPage}
             disabled={currentPage === 1}
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("seller.orders.previous", "Previous")}
           </button>
 
-          {[...Array(totalPages)].map((_, index) => {
-            const page = index + 1;
-            return (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-4 py-2 rounded-lg font-semibold ${
-                  currentPage === page
-                    ? "bg-blue-600 text-white"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {page}
-              </button>
-            );
-          })}
+          <div className="flex items-center gap-2">
+            <span className="px-4 py-2 text-gray-700">
+              {t("seller.orders.page", "Page")} {currentPage} / {totalPages}
+            </span>
+          </div>
 
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            onClick={handleNextPage}
+            disabled={currentPage >= totalPages}
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("seller.orders.next", "Next")}

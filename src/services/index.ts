@@ -94,11 +94,13 @@ export {
 // Export Transaction services
 export {
   getMyTransactions,
+  getMySales,
   getStatusColor,
   getPaymentGatewayName,
   payAuctionTransaction,
   getPendingAuctionTransaction,
-  shipTransaction
+  shipTransaction,
+  confirmReceipt
 } from './Transaction'
 
 // Export Auction services
@@ -177,7 +179,8 @@ export type {
   TransactionsResponse,
   PayAuctionRequest,
   PayAuctionResponse,
-  ShipTransactionResponse
+  ShipTransactionResponse,
+  ConfirmReceiptResponse
 } from './Transaction'
 
 export type {

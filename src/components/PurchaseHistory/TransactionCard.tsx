@@ -6,16 +6,24 @@ import {
   Transaction,
   getStatusColor,
   getPaymentGatewayName,
+  confirmReceipt,
 } from "../../services/Transaction";
 import { formatCurrency } from "../../services/Wallet";
+import { useToast } from "../../hooks/useToast";
 import Image from "next/image";
 
 interface TransactionCardProps {
   transaction: Transaction;
+  onTransactionUpdate?: () => void;
 }
 
-export default function TransactionCard({ transaction }: TransactionCardProps) {
+export default function TransactionCard({
+  transaction,
+  onTransactionUpdate,
+}: TransactionCardProps) {
   const { t } = useI18nContext();
+  const toast = useToast();
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const product = transaction.vehicle || transaction.battery;
   const productType = transaction.vehicle ? "vehicle" : "battery";
@@ -37,6 +45,37 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleConfirmReceipt = async () => {
+    if (isConfirming) return;
+
+    try {
+      setIsConfirming(true);
+      await confirmReceipt(transaction.id);
+
+      toast.success(
+        t(
+          "purchaseHistory.confirmReceiptSuccess",
+          "Order confirmed successfully! Transaction completed."
+        )
+      );
+
+      // Notify parent to refresh data
+      if (onTransactionUpdate) {
+        onTransactionUpdate();
+      }
+    } catch (error) {
+      console.error("Failed to confirm receipt:", error);
+      toast.error(
+        t(
+          "purchaseHistory.confirmReceiptError",
+          "Failed to confirm receipt. Please try again."
+        )
+      );
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   return (
@@ -76,7 +115,7 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
               >
                 {product.title}
               </motion.button>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span
                   className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${
                     productType === "vehicle"
@@ -87,6 +126,13 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
                   {productType === "vehicle"
                     ? t("purchaseHistory.productType.vehicle", "Vehicle")
                     : t("purchaseHistory.productType.battery", "Battery")}
+                </span>
+                <span
+                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${getStatusColor(
+                    transaction.status
+                  )}`}
+                >
+                  {statusLabels[transaction.status] || transaction.status}
                 </span>
               </div>
               {/* Price */}
@@ -167,6 +213,49 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
           className="border-t border-gray-200 pt-6 mt-6"
         >
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+            {/* Confirm Receipt Button - Only show when SHIPPED */}
+            {transaction.status === "SHIPPED" && (
+              <motion.button
+                whileHover={{
+                  scale: 1.04,
+                  backgroundColor: "#10b981",
+                }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleConfirmReceipt}
+                disabled={isConfirming}
+                className="flex-1 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isConfirming ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>
+                      {t("purchaseHistory.confirming", "Confirming...")}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <span>
+                      {t("purchaseHistory.confirmReceipt", "Confirm Receipt")}
+                    </span>
+                  </>
+                )}
+              </motion.button>
+            )}
+
+            {/* Write Review Button - Only show when COMPLETED and no review */}
             {transaction.status === "COMPLETED" && !transaction.review && (
               <motion.button
                 whileHover={{
@@ -180,6 +269,8 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
                 {t("purchaseHistory.writeReview", "Write Review")}
               </motion.button>
             )}
+
+            {/* Reviewed Badge - Only show when COMPLETED and has review */}
             {transaction.status === "COMPLETED" && transaction.review && (
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
