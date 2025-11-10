@@ -18,6 +18,8 @@ export interface WalletResponse {
 
 export interface DepositRequest {
   amount: number;
+  paymentMethod: 'MOMO';
+  redirectUrl?: string;
 }
 
 export interface DepositResponse {
@@ -147,13 +149,9 @@ export const makeDeposit = async (depositData: DepositRequest): Promise<DepositR
   }
 };
 
-// Helper function to format currency
+// Helper function to format currency - VNĐ format
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-  }).format(amount);
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
 };
 
 // Helper function to open payment URL

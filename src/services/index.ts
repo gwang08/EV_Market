@@ -42,6 +42,16 @@ export {
   getSellerProfile,
 } from './User'
 
+// Export Contract services
+export {
+  createSellerContract,
+  signContractAsSeller,
+  signContractAsBuyer,
+  getContractByVehicleId,
+  getUserContracts,
+  deleteContract,
+} from './Contract'
+
 // Export Battery services
 export {
   createBattery,
@@ -84,8 +94,14 @@ export {
 // Export Transaction services
 export {
   getMyTransactions,
+  getMySales,
   getStatusColor,
-  getPaymentGatewayName
+  getPaymentGatewayName,
+  payAuctionTransaction,
+  getPendingAuctionTransaction,
+  shipTransaction,
+  confirmReceipt,
+  disputeTransaction
 } from './Transaction'
 
 // Export Auction services
@@ -105,8 +121,7 @@ export {
   getAuctionRequests,
   reviewAuctionRequest,
   approveListing,
-  getAdminStats,
-  getPendingListings
+  getAdminStats
 } from './Admin'
 
 // Export types
@@ -162,7 +177,12 @@ export type {
   TransactionReview,
   TransactionVehicle,
   TransactionBattery,
-  TransactionsResponse
+  TransactionsResponse,
+  PayAuctionRequest,
+  PayAuctionResponse,
+  ShipTransactionResponse,
+  ConfirmReceiptResponse,
+  DisputeTransactionResponse
 } from './Transaction'
 
 export type {

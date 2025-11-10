@@ -124,7 +124,7 @@ function CarDetailHero({ vehicle }: CarDetailHeroProps) {
                 {vehicle.title}
               </h1>
               <div className="text-4xl font-bold text-indigo-700 drop-shadow-sm">
-                ${vehicle.price.toLocaleString()}
+                {vehicle.price.toLocaleString()} VNĐ
               </div>
             </div>
 

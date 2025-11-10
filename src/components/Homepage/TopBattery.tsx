@@ -37,10 +37,12 @@ function TopBattery() {
         const isNotSold = battery.status !== "SOLD";
         const isNotOwnBattery =
           !currentUserId || battery.sellerId !== currentUserId;
-        return isAvailable && isNotSold && isNotOwnBattery;
+        const isVerified = battery.isVerified === true; // Chỉ lấy pin đã verified
+
+        return isAvailable && isNotSold && isNotOwnBattery && isVerified;
       });
 
-      setDisplayBatteries(filteredBatteries.slice(0, 4));
+      setDisplayBatteries(filteredBatteries.slice(0, 4)); // Giới hạn 4 pin
     };
 
     filterBatteries();
@@ -207,7 +209,7 @@ function TopBattery() {
                       {battery.title}
                     </h3>
                     <span className="text-2xl font-bold text-indigo-700 group-hover:text-blue-700 transition-colors duration-200 mt-1">
-                      ${battery.price.toLocaleString()}
+                      {battery.price.toLocaleString()} VNĐ
                     </span>
                   </motion.div>
                   <motion.div

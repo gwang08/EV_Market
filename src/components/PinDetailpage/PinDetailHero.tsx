@@ -97,7 +97,7 @@ function PinDetailHero({ battery }: PinDetailHeroProps) {
                 {battery.title} {battery.year && `(${battery.year})`}
               </h1>
               <div className="text-4xl font-bold text-indigo-700 drop-shadow-sm">
-                ${battery.price.toLocaleString()}
+                {battery.price.toLocaleString()} VNĐ
               </div>
             </div>
 

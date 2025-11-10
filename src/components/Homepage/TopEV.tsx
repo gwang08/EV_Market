@@ -28,26 +28,14 @@ export default function TopEV() {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  // Filter vehicles when data changes
+  // Filter vehicles when data changes - chỉ hiển thị xe đã verified
   useEffect(() => {
-    const filterVehicles = async () => {
-      if (!allVehicles) return;
-
-      const currentUserId = await getCurrentUserId();
-
-      const filteredVehicles = allVehicles.filter((vehicle) => {
-        const isAvailable = vehicle.status === "AVAILABLE";
-        const isNotSold = vehicle.status !== "SOLD";
-        const isNotOwnVehicle =
-          !currentUserId || vehicle.sellerId !== currentUserId;
-        return isAvailable && isNotSold && isNotOwnVehicle;
-      });
-
-      // Take only first 4 vehicles for top deals
-      setDisplayVehicles(filteredVehicles.slice(0, 4));
-    };
-
-    filterVehicles();
+    if (allVehicles && allVehicles.length > 0) {
+      const verifiedVehicles = allVehicles
+        .filter((vehicle) => vehicle.isVerified === true) // Chỉ lấy xe đã verified
+        .slice(0, 4); // Giới hạn 6 xe
+      setDisplayVehicles(verifiedVehicles);
+    }
   }, [allVehicles]);
 
   if (isLoadingVehicles) {
@@ -212,7 +200,7 @@ export default function TopEV() {
                       {vehicle.title}
                     </h3>
                     <span className="text-2xl font-bold text-indigo-700 group-hover:text-blue-700 transition-colors duration-200 mt-1">
-                      ${vehicle.price.toLocaleString()}
+                      {vehicle.price.toLocaleString()} VNĐ
                     </span>
                   </motion.div>
                   {/* Info row */}

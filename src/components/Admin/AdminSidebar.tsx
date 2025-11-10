@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   History,
+  FileCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { useI18nContext } from "@/providers/I18nProvider";
 
@@ -56,12 +58,23 @@ export default function AdminSidebar({ isOpen, toggleSidebar }: SidebarProps) {
       key: "auction-history",
     },
     {
+      icon: AlertTriangle,
+      label: "Giải quyết khiếu nại",
+      href: "/admin/disputes",
+      key: "disputes",
+    },
+    {
       icon: DollarSign,
       label: "Quản lý phí & hoa hồng",
       href: "/admin/fees",
       key: "fees",
     },
- 
+    // {
+    //   icon: FileCheck,
+    //   label: "Quản lý hợp đồng",
+    //   href: "/admin/contracts",
+    //   key: "contracts",
+    // },
   ];
 
   return (

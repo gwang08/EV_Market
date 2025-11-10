@@ -36,21 +36,33 @@ const handleApiResponse = async (response: Response) => {
  */
 export const getLiveAuctions = async (page = 1, limit = 10): Promise<LiveAuctionsResponse> => {
   try {
+    const { ensureValidToken } = await import('./Auth')
+    const token = await ensureValidToken()
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     }
 
- 
-    const response = await fetch(`${API_BASE_URL}/auctions/live`, {
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    // Thêm query parameters để lấy đấu giá đang diễn ra hoặc sắp diễn ra
+    const url = `${API_BASE_URL}/auctions/live?time=future&page=${page}&limit=${limit}`
+    console.log("🔗 Fetching auctions from:", url);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers,
       credentials: 'include',
     })
 
+    console.log("📡 Auction API response status:", response.status);
     const data = await handleApiResponse(response)
+    console.log("📦 Auction API data:", data);
     return data
   } catch (error) {
+    console.error("❌ Auction API error:", error);
     throw new Error(error instanceof Error ? error.message : 'Failed to fetch live auctions')
   }
 }
@@ -165,15 +177,10 @@ export const payDeposit = async (
 }
 
 /**
- * Format currency for display
+ * Format currency for display - VNĐ format
  */
 export const formatAuctionPrice = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ'
 }
 
 /**
@@ -187,12 +194,16 @@ export const getTimeRemaining = (endDate: string): {
   seconds: number
   isExpired: boolean
 } => {
-  // Parse end date and current time in UTC to avoid timezone issues
-  const endTime = new Date(endDate).getTime()
-  const now = new Date().getTime()
-  const total = endTime - now
+  // API trả về: "2025-11-10T21:55:00.000Z" 
+  // Nhưng thực chất đó là 21:55 giờ local (VN), không phải UTC
+  // Nên phải parse như local time
   
-  // Debug log
+  // Remove 'Z' để parse như local time thay vì UTC
+  const endDateLocal = endDate.replace('Z', '')
+  const endTime = new Date(endDateLocal).getTime()
+  const now = Date.now()
+  
+  const total = endTime - now
 
   const seconds = Math.floor((total / 1000) % 60)
   const minutes = Math.floor((total / 1000 / 60) % 60)

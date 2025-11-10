@@ -83,7 +83,7 @@ function BrowsePageContent() {
     name: `${vehicle.brand} ${vehicle.model}`,
     year: vehicle.year.toString(),
     mileage: `${vehicle.mileage.toLocaleString()} miles`,
-    price: `$${vehicle.price.toLocaleString()}`,
+    price: `${vehicle.price.toLocaleString()} VNĐ`,
     image: vehicle.images[0] || "/Homepage/TopCar.png",
     verified: vehicle.isVerified,
     fastSale: vehicle.status === "AVAILABLE",
@@ -99,7 +99,7 @@ function BrowsePageContent() {
     id: battery.id,
     name: battery.title,
     year: battery.year.toString(),
-    price: `$${battery.price.toLocaleString()}`,
+    price: `${battery.price.toLocaleString()} VNĐ`,
     image: battery.images[0] || "/Homepage/TopCar.png",
     verified: battery.isVerified,
     fastSale: battery.status === "AVAILABLE",
@@ -140,7 +140,7 @@ function BrowsePageContent() {
     }
 
     // Price range filter
-    const price = parseFloat(product.price.replace(/[$,]/g, ""));
+    const price = parseFloat(product.price.replace(/[,VNĐ\s]/g, ""));
     if (filters.minPrice && price < parseFloat(filters.minPrice.replace(/,/g, ""))) return false;
     if (filters.maxPrice && price > parseFloat(filters.maxPrice.replace(/,/g, ""))) return false;
 

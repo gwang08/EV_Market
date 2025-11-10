@@ -1,9 +1,16 @@
-import React from 'react'
+import React from "react";
+import { motion } from "framer-motion";
 
 export default function TransactionSkeleton() {
   return (
-    <div className="bg-white rounded-xl md:rounded-2xl shadow-md overflow-hidden animate-pulse">
-      <div className="p-4 md:p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white rounded-3xl shadow-xl overflow-hidden animate-pulse"
+    >
+      <div className="p-6 md:p-8">
         {/* Header Skeleton */}
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="flex-1">
@@ -54,6 +61,6 @@ export default function TransactionSkeleton() {
           </div>
         </div>
       </div>
-    </div>
-  )
+    </motion.div>
+  );
 }

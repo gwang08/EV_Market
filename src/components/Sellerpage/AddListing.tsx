@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   validateField,
   validateForm,
@@ -15,6 +15,7 @@ import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
 import { useDataContext } from "../../contexts/DataContext";
 import { FiBatteryCharging, FiTruck } from "react-icons/fi";
+import { getUserInfo } from "../../services/Auth";
 
 interface FormData {
   title: string;
@@ -93,9 +94,11 @@ const Input = ({
 
   // If currency input hook is provided, use it
   const value = currencyInput ? currencyInput.displayValue : form[field];
-  const onChange = currencyInput 
-    ? (e: React.ChangeEvent<HTMLInputElement>) => currencyInput.handleChange(e.target.value)
-    : (e: React.ChangeEvent<HTMLInputElement>) => handleChange(field, e.target.value);
+  const onChange = currencyInput
+    ? (e: React.ChangeEvent<HTMLInputElement>) =>
+        currencyInput.handleChange(e.target.value)
+    : (e: React.ChangeEvent<HTMLInputElement>) =>
+        handleChange(field, e.target.value);
 
   return (
     <div className="mb-6">
@@ -229,6 +232,28 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     spec_temperatureRange: "",
   });
 
+  // Keep form values in sync with currency input hooks so the review screen shows data
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      price: priceInput.rawValue,
+    }));
+  }, [priceInput.rawValue]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      mileage: mileageInput.rawValue,
+    }));
+  }, [mileageInput.rawValue]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      batteryCapacity: batteryCapacityInput.rawValue,
+    }));
+  }, [batteryCapacityInput.rawValue]);
+
   // Handle input change (no validation on change)
   const handleChange = useCallback((field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -254,7 +279,13 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
         setErrors((prev) => prev.filter((e) => e.field !== field));
       }
     },
-    [form, listingType, priceInput.rawValue, mileageInput.rawValue, batteryCapacityInput.rawValue]
+    [
+      form,
+      listingType,
+      priceInput.rawValue,
+      mileageInput.rawValue,
+      batteryCapacityInput.rawValue,
+    ]
   );
 
   const handleImageUpload = (files: FileList | null) => {
@@ -285,6 +316,19 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
       return;
     }
 
+    // Require description at create time; stay on Review & Submit (step 5)
+    if (!form.description || !form.description.trim()) {
+      setErrors([
+        {
+          field: "description",
+          message: t("seller.addListing.validation.required"),
+        },
+      ]);
+      setCurrentStep(5);
+      showError(t("seller.addListing.validation.required"));
+      return;
+    }
+
     // Update form with currency input values before validation
     const formToValidate = {
       ...form,
@@ -296,7 +340,11 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     const validation = validateForm(formToValidate, listingType);
     if (!validation.isValid) {
       setErrors(validation.errors);
-      setCurrentStep(1); // Go back to first step with errors
+      const hasDescriptionError = validation.errors.some(
+        (e) => e.field === "description"
+      );
+      // If description is missing, keep user on review step
+      setCurrentStep(hasDescriptionError ? 5 : 1);
       return;
     }
 
@@ -304,7 +352,7 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     try {
       // API call - Create listing with auction if enabled
       let result;
-      
+
       if (listingType === "vehicle") {
         const vehiclePayload: any = {
           title: form.title,
@@ -365,7 +413,6 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
         result = await createBattery(batteryPayload);
       }
 
-
       if (!result.success) {
         showError(
           result.message || t("toast.createFailed", "Failed to create listing")
@@ -373,8 +420,11 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
         return;
       }
 
-      // Success message
-      success(t("seller.addListing.validation.listingCreatedSuccess"));
+      // Success - show message and refresh
+      success(
+        result.message ||
+          t("toast.createSuccess", "Listing created successfully!")
+      );
 
       // Refresh cache to show new listing immediately
       if (listingType === "vehicle") {
@@ -884,7 +934,7 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
                   </span>
                   <span className="text-base font-bold text-gray-900">
                     {form.price
-                      ? `$${Number(form.price).toLocaleString()}`
+                      ? `${Number(form.price).toLocaleString()} VNĐ`
                       : "-"}
                   </span>
                 </div>
@@ -1151,7 +1201,6 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
                 </p>
               )}
             </div>
-
           </div>
         );
     }
@@ -1199,7 +1248,7 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
       // Otherwise check form
       return !form[field];
     });
-    
+
     if (emptyFields.length > 0) {
       setErrors(
         emptyFields.map((field) => ({

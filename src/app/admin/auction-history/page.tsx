@@ -4,6 +4,7 @@ import RoleAuthWrapper from "@/components/common/RoleAuthWrapper";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminTopbar from "@/components/Admin/AdminTopbar";
 import AuctionHistoryTable from "@/components/Admin/AuctionHistoryTable";
+import Pagination from "@/components/common/Pagination";
 import { getAuctionHistory } from "@/services/Admin";
 import { AuctionRequest } from "@/types/admin";
 import { Loader2, AlertCircle, Filter, Clock, CheckCircle, XCircle } from "lucide-react";
@@ -174,50 +175,13 @@ function AuctionHistoryManagementPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-gray-700 transition-colors"
-                  >
-                    Trước
-                  </button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      // Show first 2, last 2, and current page
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (page <= 3) {
-                        pageNum = i + 1;
-                      } else if (page >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = page - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          className={`w-10 h-10 rounded-lg font-medium transition-all duration-300 ${
-                            page === pageNum
-                              ? "bg-blue-600 text-white shadow-lg"
-                              : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-gray-700 transition-colors"
-                  >
-                    Sau
-                  </button>
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    disabled={loading}
+                  />
                 </div>
               )}
             </>

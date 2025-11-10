@@ -39,28 +39,31 @@ function ProductGrid({
     }
   };
 
-  // ...mockProducts & sorting logic unchanged...
-
   // Always use products from props if available, never fallback to mock when filtering
   const displayProducts = products || [];
+
+  // Filter only verified products
+  const verifiedProducts = displayProducts.filter(
+    (product) => product.verified === true
+  );
 
   // Use mock data only if no products prop is passed at all (for demo purposes)
   const shouldUseMockData = products === undefined && !isLoading && !error;
   const mockProducts: Product[] = []; // ...your mock data here...
-  const finalProducts = shouldUseMockData ? mockProducts : displayProducts;
+  const finalProducts = shouldUseMockData ? mockProducts : verifiedProducts;
 
   // Sort products based on sortBy
   const sortedProducts = [...finalProducts].sort((a, b) => {
     switch (sortBy) {
       case "priceLow":
         return (
-          (parseFloat(a.price.replace(/[$,]/g, "")) || 0) -
-          (parseFloat(b.price.replace(/[$,]/g, "")) || 0)
+          (parseFloat(a.price.replace(/[,VNĐ\s]/g, "")) || 0) -
+          (parseFloat(b.price.replace(/[,VNĐ\s]/g, "")) || 0)
         );
       case "priceHigh":
         return (
-          (parseFloat(b.price.replace(/[$,]/g, "")) || 0) -
-          (parseFloat(a.price.replace(/[$,]/g, "")) || 0)
+          (parseFloat(b.price.replace(/[,VNĐ\s]/g, "")) || 0) -
+          (parseFloat(a.price.replace(/[,VNĐ\s]/g, "")) || 0)
         );
       case "rating":
         return (b.rating || 0) - (a.rating || 0);

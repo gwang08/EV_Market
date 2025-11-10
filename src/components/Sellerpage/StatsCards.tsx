@@ -42,7 +42,7 @@ function StatsCards() {
     },
     {
       title: t("seller.stats.totalEarnings"),
-      value: "$19,900",
+      value: "19.900.000 VNĐ",
       change: `+3 ${t("seller.stats.itemsSold")}`,
       changeType: "positive",
       icon: <FiDollarSign className="w-7 h-7" />,

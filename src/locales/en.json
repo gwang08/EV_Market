@@ -141,6 +141,7 @@
     "tabs": {
       "dashboard": "Dashboard",
       "listings": "My Listings",
+      "orders": "Orders",
       "addListing": "Add Listing"
     },
     "stats": {
@@ -282,7 +283,6 @@
         "title": "Listing Title",
         "capacity": "Capacity",
         "health": "Health "
-
       },
       "batterySpecs": {
         "weight": "Weight (kg)",
@@ -328,7 +328,7 @@
       },
       "placeholders": {
         "listingTitle": "e.g., 2020 Tesla Model 3 Long Range",
-        "price": "25,000,000",
+        "price": "500,000,000",
         "brand": "e.g., CATL, BYD, LG",
         "model": "Model 3",
         "year": "2020",
@@ -353,6 +353,51 @@
       "auctionStart": "Auction Start Time",
       "auctionEnd": "Auction End Time",
       "auctionNote": "Your auction will be reviewed by admin before going live. You'll be notified once approved."
+    },
+    "orders": {
+      "title": "My Orders",
+      "subtitle": "Manage and ship your orders",
+      "totalOrders": "Total Orders",
+      "pendingShipment": "Pending Shipment",
+      "completedOrders": "Completed",
+      "noOrders": "No Orders Yet",
+      "noOrdersDesc": "When customers purchase your products, they will appear here.",
+      "loadError": "Failed to load orders",
+      "errorTitle": "Error",
+      "tryAgain": "Try Again",
+      "retry": "Retry",
+      "price": "Price",
+      "buyer": "Buyer",
+      "soldDate": "Sold Date",
+      "productId": "Product ID",
+      "transactionId": "Order ID",
+      "orderId": "Order ID",
+      "transactionDate": "Transaction Date",
+      "paymentMethod": "Payment Method",
+      "date": "Date",
+      "shipOrder": "Ship Order",
+      "shipping": "Shipping...",
+      "shipped": "Shipped",
+      "completed": "Completed",
+      "needTransactionId": "Transaction ID needed. This feature requires backend transaction lookup by product ID.",
+      "shipSuccess": "Order marked as shipped successfully!",
+      "shipError": "Failed to mark order as shipped. Please try again.",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "status": {
+        "pending": "Pending",
+        "paid": "Paid",
+        "shipped": "Shipped",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded",
+        "disputed": "Disputed"
+      },
+      "productType": {
+        "vehicle": "Vehicle",
+        "battery": "Battery"
+      }
     },
     "auction": {
       "title": "Open Auction",
@@ -664,6 +709,9 @@
     "manageDescription": "Manage your funds for auctions and purchases on EcoTrade EV",
     "currentBalance": "Current Balance",
     "availableBalance": "Available Balance",
+    "lockedBalance": "Locked Balance",
+    "lockedSection": "Locked Funds",
+    "lockedDescription": "This amount is being held for auctions or pending transactions",
     "depositFunds": "Deposit Funds",
     "depositDescription": "Deposit funds to your wallet to participate in auctions",
     "withdraw": "Withdraw",
@@ -706,7 +754,6 @@
     "auctionFundsHold": "Auction Funds Hold",
     "auctionFundsDescription": "Funds held for your active auction bids",
     "temporarilyLocked": "Temporarily Locked",
-    "lockedDescription": "These funds are held for your active auction bids and will be released when auctions end.",
     "importantNote": "Important Note",
     "warningMessage": "Funds will be automatically released when auction ends if you don't win the auction, or when you complete the payment if you win.",
     "depositAmount": "Deposit Amount",
@@ -754,11 +801,36 @@
     "viewDetails": "View Details",
     "writeReview": "Write Review",
     "reviewed": "Reviewed",
+    "confirmReceipt": "Confirm Receipt",
+    "confirming": "Confirming...",
+    "confirmReceiptSuccess": "Order confirmed successfully! Transaction completed.",
+    "confirmReceiptError": "Failed to confirm receipt. Please try again.",
+    "disputeOrder": "Dispute",
+    "disputeTitle": "Dispute Transaction",
+    "disputeReason": "Reason for Dispute",
+    "disputeReasonPlaceholder": "Please describe the issue with the product...",
+    "disputeReasonRequired": "Please provide a reason for the dispute",
+    "disputeImages": "Evidence Images",
+    "disputeImagesRequired": "Please upload at least one image",
+    "uploadImages": "Click to upload images (Max 5)",
+    "maxImagesWarning": "You can upload maximum 5 images",
+    "cancel": "Cancel",
+    "submitting": "Submitting...",
+    "submitDispute": "Submit Dispute",
+    "disputeSuccess": "Transaction has been disputed. Admin will review it.",
+    "disputeError": "Failed to submit dispute. Please try again.",
+    "shipOrder": "Mark as Shipped",
+    "shipping": "Shipping...",
+    "shipSuccess": "Order marked as shipped successfully!",
+    "shipError": "Failed to mark order as shipped. Please try again.",
     "status": {
       "completed": "Completed",
       "pending": "Pending",
+      "paid": "Paid",
+      "shipped": "Shipped",
       "cancelled": "Cancelled",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "disputed": "Disputed"
     },
     "productType": {
       "vehicle": "Vehicle",
@@ -849,6 +921,14 @@
     "depositAmount": "Deposit Amount",
     "step": "Step",
     "of": "of",
+    "congratulations": "Congratulations! You won the auction!",
+    "winnerMessage": "Please complete the payment to finalize the transaction",
+    "finalPrice": "Final Price",
+    "payNow": "Pay Now",
+    "paymentSuccess": "Payment successful!",
+    "auctionLost": "Sorry! You did not win this auction",
+    "noBidsPlaced": "You didn't place any bids",
+    "depositRefunded": "Your deposit will be refunded to your wallet",
     "errors": {
       "loginRequired": "Please login to continue",
       "depositRequiredError": "You must pay a deposit before placing a bid. Please pay the deposit first.",
@@ -863,7 +943,40 @@
       "bidFailed": "Failed to place bid. Please try again.",
       "alreadyDeposited": "You have already paid the deposit for this auction.",
       "networkError": "Network error. Please check your connection and try again.",
-      "unauthorized": "Your session has expired. Please login again."
+      "unauthorized": "Your session has expired. Please login again.",
+      "paymentFailed": "Payment failed. Please try again.",
+      "paymentNotImplemented": "Payment feature is under development",
+      "transactionNotFound": "Transaction not found"
+    }
+  },
+  "admin": {
+    "disputes": {
+      "title": "Dispute Management",
+      "loadError": "Failed to load disputes",
+      "noDisputes": "No Disputes",
+      "noDisputesDesc": "There are no disputes to resolve at the moment.",
+      "transaction": "Transaction",
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "reason": "Reason",
+      "amount": "Amount",
+      "actions": "Actions",
+      "viewDetails": "View Details",
+      "previous": "Previous",
+      "next": "Next",
+      "disputeDetails": "Dispute Details",
+      "productInfo": "Product Information",
+      "productName": "Product Name",
+      "buyerInfo": "Buyer Information",
+      "sellerInfo": "Seller Information",
+      "disputeReason": "Dispute Reason",
+      "evidence": "Evidence Images",
+      "reject": "Reject Dispute",
+      "approve": "Approve & Refund",
+      "resolving": "Processing...",
+      "approveSuccess": "Dispute approved and buyer has been refunded",
+      "rejectSuccess": "Dispute rejected",
+      "resolveError": "Failed to resolve dispute. Please try again."
     }
   }
 }

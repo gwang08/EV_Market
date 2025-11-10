@@ -48,11 +48,39 @@ function MyListings() {
   const [editType, setEditType] = useState<ListingType>("vehicle");
   const [editId, setEditId] = useState<string | null>(null);
   const [editImages, setEditImages] = useState<string[]>([]);
+  // Keep snapshot of images when opening modal to compute deletions
+  const [originalImages, setOriginalImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+
+  // Prevent duplicate success toasts (e.g., double submits)
+  const lastSuccessRef = React.useRef<number>(0);
+  const successOnce = (message: string) => {
+    const now = Date.now();
+    if (now - lastSuccessRef.current > 800) {
+      success(message);
+      lastSuccessRef.current = now;
+    }
+  };
+
+  // Helpers to prevent duplicate images
+  const dedupeStringArray = (arr: string[]) => Array.from(new Set(arr));
+  const dedupeFileArray = (arr: File[]) => {
+    const key = (f: File) => `${f.name}|${f.size}|${f.lastModified}`;
+    const seen = new Set<string>();
+    const unique: File[] = [];
+    for (const f of arr) {
+      const k = key(f);
+      if (!seen.has(k)) {
+        seen.add(k);
+        unique.push(f);
+      }
+    }
+    return unique;
+  };
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -108,7 +136,9 @@ function MyListings() {
   const handleInputBlur = useCallback(
     (field: string) => {
       const value = formData[field as keyof typeof formData];
-      const error = validateField(field, value, editType);
+      // Map UI field 'brand' to validation field 'make'
+      const validationField = field === "brand" ? "make" : field;
+      const error = validateField(validationField, value, editType);
 
       if (error) {
         setValidationErrors((prev) => [
@@ -140,8 +170,8 @@ function MyListings() {
   const handleNewFiles = (files: File[]) => {
     if (!files.length) return;
     const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setNewImages((prev) => [...prev, ...files]);
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    setNewImages((prev) => dedupeFileArray([...prev, ...files]));
+    setImagePreviews((prev) => dedupeStringArray([...prev, ...newPreviews]));
     success(
       t(
         "toast.imageUploadSuccess",
@@ -153,11 +183,32 @@ function MyListings() {
   };
 
   const removeExistingImage = (index: number) => {
+    const totalImages = editImages.length + newImages.length;
+    // Do not allow removing the last remaining image
+    if (totalImages <= 1) {
+      showError(t("toast.atLeastOneImage", "Cần có ít nhất 1 ảnh."));
+      return;
+    }
+    // Do not allow removing old images if there are no new images
+    if (newImages.length === 0) {
+      showError(
+        t(
+          "toast.cannotRemoveOldWithoutNew",
+          "Hãy thêm ảnh mới trước khi xóa ảnh cũ."
+        )
+      );
+      return;
+    }
     setEditImages((prev) => prev.filter((_, i) => i !== index));
     success(t("toast.imageRemoveSuccess", "Image removed successfully!"));
   };
 
   const removeNewImage = (index: number) => {
+    const totalImages = editImages.length + newImages.length;
+    if (totalImages <= 1) {
+      showError(t("toast.atLeastOneImage", "Cần có ít nhất 1 ảnh."));
+      return;
+    }
     setNewImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
     success(t("toast.imageRemoveSuccess", "Image removed successfully!"));
@@ -193,7 +244,7 @@ function MyListings() {
           id: v.id,
           type: "vehicle" as const,
           title: v.title,
-          price: `$${Number(v.price).toLocaleString()}`,
+          price: `${Number(v.price).toLocaleString()} VNĐ`,
           status: v.status === "SOLD" ? "sold" : "active",
           image: v.images?.[0] || "/Homepage/TopCar.png",
           specs: {
@@ -212,7 +263,7 @@ function MyListings() {
         id: b.id,
         type: "battery" as const,
         title: b.title,
-        price: `$${Number(b.price).toLocaleString()}`,
+        price: `${Number(b.price).toLocaleString()} VNĐ`,
         status: b.status === "SOLD" ? "sold" : "active",
         image: b.images?.[0] || "/Homepage/Car.png",
         specs: {
@@ -242,7 +293,9 @@ function MyListings() {
       });
       priceInput.setValue(String(v?.price ?? ""));
       mileageInput.setValue(String(v?.mileage ?? ""));
-      setEditImages(v?.images || []);
+      const imgs = v?.images || [];
+      setEditImages(imgs);
+      setOriginalImages(imgs);
     } else {
       const b = batteries.find((b) => b.id === item.id);
       setFormData({
@@ -257,7 +310,9 @@ function MyListings() {
       });
       priceInput.setValue(String(b?.price ?? ""));
       mileageInput.setValue(""); // Battery doesn't have mileage
-      setEditImages(b?.images || []);
+      const imgs = b?.images || [];
+      setEditImages(imgs);
+      setOriginalImages(imgs);
     }
 
     setNewImages([]);
@@ -329,7 +384,7 @@ function MyListings() {
           year: formData.year,
           batteryCapacity: formData.capacity, // Map capacity to batteryCapacity for validation
           batteryHealth: formData.health,
-          ...(formData.brand && { make: formData.brand }), // Only add make if brand has value
+          make: formData.brand, // Require brand for battery too
         };
       }
 
@@ -360,6 +415,7 @@ function MyListings() {
           model: formData.model,
           status: formData.status as "AVAILABLE" | "SOLD" | "DELISTED",
           images: newImages.length > 0 ? newImages : undefined,
+          imagesToDelete: originalImages.filter((url) => !editImages.includes(url)),
         };
         result = await updateVehicle(editId, payload);
       } else {
@@ -372,6 +428,7 @@ function MyListings() {
           description: formData.description,
           brand: formData.brand,
           images: newImages.length > 0 ? newImages : undefined,
+          imagesToDelete: originalImages.filter((url) => !editImages.includes(url)),
         };
         result = await updateBattery(editId, payload);
       }
@@ -397,22 +454,33 @@ function MyListings() {
       // Update local state
       if (editType === "vehicle") {
         const updatedVehicle = (result.data as any)?.vehicle || result.data;
+        // If API does not return updated images array, fall back to local editImages when no new uploads
+        const mergedVehicle =
+          updatedVehicle && Array.isArray(updatedVehicle.images)
+            ? updatedVehicle
+            : {
+                ...updatedVehicle,
+                images: newImages.length > 0 ? updatedVehicle.images : editImages,
+              };
         setVehicles((prev) =>
-          prev.map((v) => (v.id === editId ? { ...v, ...updatedVehicle } : v))
+          prev.map((v) => (v.id === editId ? { ...v, ...mergedVehicle } : v))
         );
         await refreshVehicles(); // Refresh cache
-        success(
-          t("toast.vehicleUpdateSuccess", "Xe được cập nhật thành công!")
-        );
+        successOnce(t("toast.vehicleUpdateSuccess", "Xe được cập nhật thành công!"));
       } else {
         const updatedBattery = (result.data as any)?.battery || result.data;
+        const mergedBattery =
+          updatedBattery && Array.isArray(updatedBattery.images)
+            ? updatedBattery
+            : {
+                ...updatedBattery,
+                images: newImages.length > 0 ? updatedBattery.images : editImages,
+              };
         setBatteries((prev) =>
-          prev.map((b) => (b.id === editId ? { ...b, ...updatedBattery } : b))
+          prev.map((b) => (b.id === editId ? { ...b, ...mergedBattery } : b))
         );
         await refreshBatteries(); // Refresh cache
-        success(
-          t("toast.batteryUpdateSuccess", "Pin được cập nhật thành công!")
-        );
+        successOnce(t("toast.batteryUpdateSuccess", "Pin được cập nhật thành công!"));
       }
 
       setIsModalOpen(false);
@@ -897,6 +965,20 @@ function MyListings() {
                     </div>
                     <div>
                       <label className="block text-base font-semibold text-gray-800 mb-2">
+                        {t("seller.listings.form.brand")}{" "}
+                        <span className="text-red-600 font-bold">*</span>
+                      </label>
+                      <input
+                        className={getInputClass("brand")}
+                        value={formData.brand || ""}
+                        onChange={(e) => handleInputChange("brand", e.target.value)}
+                        onBlur={() => handleInputBlur("brand")}
+                        placeholder={t("seller.listings.form.brandPlaceholder")}
+                      />
+                      <ErrorMessage fieldName="brand" />
+                    </div>
+                    <div>
+                      <label className="block text-base font-semibold text-gray-800 mb-2">
                         {t("seller.listings.form.health")}{" "}
                         <span className="text-red-600 font-bold">*</span>
                       </label>
@@ -953,8 +1035,17 @@ function MyListings() {
                               className="w-full h-20 object-cover rounded-lg border"
                             />
                             <button
-                              onClick={() => removeExistingImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeExistingImage(index);
+                              }}
+                              disabled={
+                                editImages.length + newImages.length <= 1 ||
+                                newImages.length === 0
+                              }
+                              className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
                               aria-label={t("seller.listings.delete")}
                             >
                               ×
@@ -980,8 +1071,14 @@ function MyListings() {
                               className="w-full h-20 object-cover rounded-lg border"
                             />
                             <button
-                              onClick={() => removeNewImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeNewImage(index);
+                              }}
+                              disabled={editImages.length + newImages.length <= 1}
+                              className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
                               aria-label={t("seller.listings.delete")}
                             >
                               ×

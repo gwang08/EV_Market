@@ -116,7 +116,7 @@ export function validateField(
     
     const requiredFields = listingType === 'vehicle'
       ? ['title', 'description', 'price', 'make', 'model', 'year', 'mileage']
-      : ['title', 'description', 'price', 'year', 'batteryCapacity'];
+      : ['title', 'description', 'price', 'year', 'batteryCapacity', 'make'];
   
     requiredFields.forEach(field => {
       const error = validateField(field, formData[field], listingType);

@@ -1,6 +1,6 @@
 import { ensureValidToken } from './Auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'https://evmarket-api-staging-backup.onrender.com/api/v1'
 
 export type ListingType = 'VEHICLE' | 'BATTERY'
 export type PaymentMethod = 'MOMO' | 'WALLET'
@@ -9,6 +9,7 @@ export interface CheckoutRequest {
   listingId: string
   listingType: ListingType
   paymentMethod: PaymentMethod
+  redirectUrl?: string
 }
 
 // Complete payment with wallet using a transactionId returned from checkout()
