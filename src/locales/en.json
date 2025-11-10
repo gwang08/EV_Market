@@ -282,7 +282,6 @@
         "title": "Listing Title",
         "capacity": "Capacity",
         "health": "Health "
-
       },
       "batterySpecs": {
         "weight": "Weight (kg)",
@@ -849,6 +848,14 @@
     "depositAmount": "Deposit Amount",
     "step": "Step",
     "of": "of",
+    "congratulations": "Congratulations! You won the auction!",
+    "winnerMessage": "Please complete the payment to finalize the transaction",
+    "finalPrice": "Final Price",
+    "payNow": "Pay Now",
+    "paymentSuccess": "Payment successful!",
+    "auctionLost": "Sorry! You did not win this auction",
+    "noBidsPlaced": "You didn't place any bids",
+    "depositRefunded": "Your deposit will be refunded to your wallet",
     "errors": {
       "loginRequired": "Please login to continue",
       "depositRequiredError": "You must pay a deposit before placing a bid. Please pay the deposit first.",
@@ -863,7 +870,10 @@
       "bidFailed": "Failed to place bid. Please try again.",
       "alreadyDeposited": "You have already paid the deposit for this auction.",
       "networkError": "Network error. Please check your connection and try again.",
-      "unauthorized": "Your session has expired. Please login again."
+      "unauthorized": "Your session has expired. Please login again.",
+      "paymentFailed": "Payment failed. Please try again.",
+      "paymentNotImplemented": "Payment feature is under development",
+      "transactionNotFound": "Transaction not found"
     }
   }
 }

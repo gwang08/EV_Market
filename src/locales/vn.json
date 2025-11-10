@@ -837,6 +837,14 @@
     "depositAmount": "Tiền đặt cọc",
     "step": "Bước",
     "of": "của",
+    "congratulations": "Chúc mừng! Bạn đã thắng đấu giá!",
+    "winnerMessage": "Vui lòng thanh toán để hoàn tất giao dịch",
+    "finalPrice": "Giá cuối",
+    "payNow": "Thanh toán ngay",
+    "paymentSuccess": "Thanh toán thành công!",
+    "auctionLost": "Rất tiếc! Bạn đã không thắng đấu giá",
+    "noBidsPlaced": "Bạn chưa đặt giá nào",
+    "depositRefunded": "Tiền cọc sẽ được hoàn trả vào ví của bạn",
     "errors": {
       "loginRequired": "Vui lòng đăng nhập để tiếp tục",
       "depositRequiredError": "Bạn phải đặt cọc trước khi đấu giá. Vui lòng đặt cọc trước.",
@@ -851,7 +859,10 @@
       "bidFailed": "Đặt giá thất bại. Vui lòng thử lại.",
       "alreadyDeposited": "Bạn đã đặt cọc cho phiên đấu giá này rồi.",
       "networkError": "Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.",
-      "unauthorized": "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."
+      "unauthorized": "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+      "paymentFailed": "Thanh toán thất bại. Vui lòng thử lại.",
+      "paymentNotImplemented": "Chức năng thanh toán đang được triển khai",
+      "transactionNotFound": "Không tìm thấy giao dịch"
     }
   }
 }

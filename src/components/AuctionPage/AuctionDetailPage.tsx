@@ -26,6 +26,10 @@ import {
   payDeposit,
   getAuctionDetail,
 } from "@/services";
+import {
+  payAuctionTransaction,
+  getPendingAuctionTransaction,
+} from "@/services/Transaction";
 import { useI18nContext } from "@/providers/I18nProvider";
 import { useToast } from "@/providers/ToastProvider";
 import { useCurrencyInput } from "@/hooks/useCurrencyInput";
@@ -173,6 +177,7 @@ export default function AuctionDetailPage({
   const bidAmountInput = useCurrencyInput("");
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [isPayingDeposit, setIsPayingDeposit] = useState(false);
+  const [isPayingAuction, setIsPayingAuction] = useState(false);
   const [hasDeposit, setHasDeposit] = useState(false);
   const [currentBid, setCurrentBid] = useState(0);
   const [isNewBidFlash, setIsNewBidFlash] = useState(false);
@@ -234,6 +239,10 @@ export default function AuctionDetailPage({
             type: listingType,
             title: auctionData.title,
             currentBid: highestBid,
+            userAuctionResult: auctionData.userAuctionResult,
+            hasUserDeposit: auctionData.hasUserDeposit,
+            auctionEndsAt: auctionData.auctionEndsAt,
+            totalBids: auctionData.bids?.length || 0,
           });
         }
       } catch (error) {
@@ -486,6 +495,71 @@ export default function AuctionDetailPage({
       }
     } finally {
       setIsPlacingBid(false);
+    }
+  };
+
+  const handlePayAuction = async (transactionId: string) => {
+    try {
+      setIsPayingAuction(true);
+
+      console.log("💰 Initiating auction payment:", {
+        transactionId,
+        auctionId: auction?.id,
+        auctionTitle: auction?.title,
+        finalPrice: currentBid || auction?.startingPrice,
+        userAuctionResult: auction?.userAuctionResult,
+      });
+
+      const response = await payAuctionTransaction(transactionId, {
+        paymentMethod: "WALLET",
+      });
+
+      console.log("✅ Payment response:", response);
+
+      if (response.data.paymentGateway === "WALLET") {
+        showSuccess(t("auctions.paymentSuccess", "Thanh toán thành công!"));
+        // Refresh auction details
+        const listingType = auction?.listingType;
+        if (listingType) {
+          const { data } = await getAuctionDetail(listingType, auctionId);
+          setAuction(data);
+          console.log("🔄 Auction refreshed after payment:", data);
+        }
+      } else if (response.data.paymentDetail?.payUrl) {
+        console.log(
+          "🔗 Redirecting to payment gateway:",
+          response.data.paymentDetail.payUrl
+        );
+        // Redirect to payment gateway
+        window.location.href = response.data.paymentDetail.payUrl;
+      }
+    } catch (error) {
+      console.error("❌ Payment Error:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t("auctions.errors.paymentFailed", "Thanh toán thất bại");
+
+      // Check for insufficient balance
+      if (
+        errorMessage.toLowerCase().includes("insufficient") ||
+        errorMessage.toLowerCase().includes("not enough") ||
+        errorMessage.toLowerCase().includes("balance")
+      ) {
+        showError(
+          t(
+            "auctions.errors.insufficientBalance",
+            "Số dư không đủ để thanh toán"
+          ),
+          6000,
+          t("auctions.errors.goToWallet", "Nạp tiền"),
+          () => router.push("/wallet")
+        );
+      } else {
+        showError(errorMessage);
+      }
+    } finally {
+      setIsPayingAuction(false);
     }
   };
 
@@ -1054,23 +1128,203 @@ export default function AuctionDetailPage({
                 </motion.div>
 
                 {timeLeft.isExpired ? (
-                  /* Auction Ended */
+                  /* 
+                    Auction Ended - Show result based on userAuctionResult
+                    
+                    FLOW LOGIC:
+                    ===========
+                    Backend API trả về trường "userAuctionResult" với các giá trị:
+                    
+                    1. "WON" - Người dùng THẮNG đấu giá:
+                       - Là người đặt giá cao nhất khi auction kết thúc
+                       - Action: Phải thanh toán số tiền bid cuối cùng
+                       - UI: Hiển thị nút "Thanh toán ngay"
+                       - Payment flow: 
+                         * Click button → Tìm pending transaction
+                         * Gọi API /transactions/{id}/pay với paymentMethod: WALLET
+                         * Nếu thành công → Hoàn tất mua hàng
+                         * Nếu thiếu tiền → Link đến wallet để nạp tiền
+                    
+                    2. "LOST" - Người dùng THUA đấu giá:
+                       - Đã đặt bid nhưng không phải người cao nhất
+                       - Action: KHÔNG CẦN làm gì, backend tự động hoàn tiền cọc
+                       - UI: Hiển thị thông báo "Tiền cọc sẽ được hoàn trả"
+                    
+                    3. "NO_BIDS" - Đã đặt cọc nhưng KHÔNG ĐẶT GIÁ:
+                       - User đã pay deposit nhưng không bid lần nào
+                       - Action: KHÔNG CẦN làm gì, backend tự động hoàn tiền cọc
+                       - UI: Hiển thị thông báo "Tiền cọc sẽ được hoàn trả"
+                    
+                    4. null - CHƯA THAM GIA:
+                       - User chưa đặt cọc cho auction này
+                       - Action: Không có action nào
+                       - UI: Chỉ hiển thị "Đấu giá đã kết thúc"
+                    
+                    Backend tự động xử lý:
+                    - Xác định winner dựa trên highest bid
+                    - Tạo transaction cho winner (status: PENDING)
+                    - Hoàn tiền deposit cho losers (status: REFUNDED)
+                    - Update vehicle/battery status
+                  */
                   <motion.div
-                    className="p-4 bg-gradient-to-br from-gray-50 to-slate-100 border border-gray-200 rounded-2xl"
+                    className="space-y-4"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                   >
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900 mb-1">
-                          {t("auctions.auctionEnded")}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {t("auctions.auctionEndedDesc")}
-                        </p>
-                      </div>
-                    </div>
+                    {auction.userAuctionResult === "WON" ? (
+                      /* Winner - Show payment option */
+                      <>
+                        <motion.div
+                          className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl shadow-lg"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-base font-bold text-green-900 mb-1">
+                                🎉{" "}
+                                {t(
+                                  "auctions.congratulations",
+                                  "Chúc mừng! Bạn đã thắng đấu giá!"
+                                )}
+                              </p>
+                              <p className="text-sm text-green-700">
+                                {t(
+                                  "auctions.winnerMessage",
+                                  "Vui lòng thanh toán để hoàn tất giao dịch"
+                                )}
+                              </p>
+                              <p className="text-lg font-bold text-green-900 mt-2">
+                                {t("auctions.finalPrice", "Giá cuối")}:{" "}
+                                {formatAuctionPrice(
+                                  currentBid || auction.startingPrice
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        <motion.button
+                          onClick={async () => {
+                            try {
+                              setIsPayingAuction(true);
+                              // Get pending transaction for this item
+                              const itemType =
+                                auction.listingType === "VEHICLE"
+                                  ? "vehicle"
+                                  : "battery";
+                              const transaction =
+                                await getPendingAuctionTransaction(
+                                  auction.id,
+                                  itemType
+                                );
+
+                              if (!transaction) {
+                                showError(
+                                  t(
+                                    "auctions.errors.transactionNotFound",
+                                    "Không tìm thấy giao dịch"
+                                  )
+                                );
+                                return;
+                              }
+
+                              await handlePayAuction(transaction.id);
+                            } catch (error) {
+                              console.error("Payment error:", error);
+                            } finally {
+                              setIsPayingAuction(false);
+                            }
+                          }}
+                          disabled={isPayingAuction}
+                          className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {isPayingAuction ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              {t("wallet.processing", "Đang xử lý...")}
+                            </>
+                          ) : (
+                            <>
+                              <Wallet className="w-5 h-5" />
+                              {t("auctions.payNow", "Thanh toán ngay")}
+                            </>
+                          )}
+                        </motion.button>
+                      </>
+                    ) : auction.userAuctionResult === "LOST" ? (
+                      /* Lost - Show refund message */
+                      <motion.div
+                        className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-yellow-900 mb-1">
+                              {t(
+                                "auctions.auctionLost",
+                                "Rất tiếc! Bạn đã không thắng đấu giá"
+                              )}
+                            </p>
+                            <p className="text-xs text-yellow-700">
+                              {t(
+                                "auctions.depositRefunded",
+                                "Tiền cọc sẽ được hoàn trả vào ví của bạn"
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : auction.userAuctionResult === "NO_BIDS" ? (
+                      /* No bids - Show refund message */
+                      <motion.div
+                        className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-blue-900 mb-1">
+                              {t(
+                                "auctions.noBidsPlaced",
+                                "Bạn chưa đặt giá nào"
+                              )}
+                            </p>
+                            <p className="text-xs text-blue-700">
+                              {t(
+                                "auctions.depositRefunded",
+                                "Tiền cọc sẽ được hoàn trả vào ví của bạn"
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      /* Default - Just auction ended */
+                      <motion.div
+                        className="p-4 bg-gradient-to-br from-gray-50 to-slate-100 border border-gray-200 rounded-2xl"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              {t("auctions.auctionEnded")}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {t("auctions.auctionEndedDesc")}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 ) : !hasDeposit ? (
                   <>

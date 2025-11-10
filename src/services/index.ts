@@ -95,7 +95,9 @@ export {
 export {
   getMyTransactions,
   getStatusColor,
-  getPaymentGatewayName
+  getPaymentGatewayName,
+  payAuctionTransaction,
+  getPendingAuctionTransaction
 } from './Transaction'
 
 // Export Auction services
@@ -171,7 +173,9 @@ export type {
   TransactionReview,
   TransactionVehicle,
   TransactionBattery,
-  TransactionsResponse
+  TransactionsResponse,
+  PayAuctionRequest,
+  PayAuctionResponse
 } from './Transaction'
 
 export type {

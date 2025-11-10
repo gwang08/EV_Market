@@ -15,11 +15,6 @@ import { createVehicle } from "../../services/Vehicle";
 import { createBattery } from "../../services/Battery";
 import { useDataContext } from "../../contexts/DataContext";
 import { FiBatteryCharging, FiTruck } from "react-icons/fi";
-import ContractModal from "../common/ContractModal";
-import {
-  createSellerContract,
-  signContractAsSeller,
-} from "../../services/Contract";
 import { getUserInfo } from "../../services/Auth";
 
 interface FormData {
@@ -206,11 +201,6 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-
-  // Contract modal state
-  const [showContractModal, setShowContractModal] = useState(false);
-  const [createdVehicleId, setCreatedVehicleId] = useState<string | null>(null);
-  const [contractData, setContractData] = useState<any>(null);
 
   // Currency input hooks for formatted fields
   const priceInput = useCurrencyInput("");
@@ -427,97 +417,10 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
         return;
       }
 
-      // Get created vehicle/battery ID
-      const createdProduct =
-        result.data && (result.data as any).vehicle
-          ? (result.data as any).vehicle
-          : result.data && (result.data as any).battery
-          ? (result.data as any).battery
-          : result.data;
-
-      const productId = createdProduct?.id;
-
-      if (!productId) {
-        showError("Không thể lấy ID sản phẩm để tạo hợp đồng");
-        return;
-      }
-
-      // Get current user info
-      const userInfo = getUserInfo();
-      if (!userInfo) {
-        showError("Không thể lấy thông tin người dùng");
-        return;
-      }
-
-      // Create contract data
-      const newContractData = {
-        vehicleId: productId,
-        vehicleInfo: {
-          title: form.title,
-          brand: form.make,
-          model: listingType === "vehicle" ? form.model : "",
-          year: Number(form.year),
-          price: Number(priceInput.rawValue),
-          mileage:
-            listingType === "vehicle"
-              ? Number(mileageInput.rawValue)
-              : undefined,
-          batteryCapacity:
-            listingType === "battery"
-              ? `${batteryCapacityInput.rawValue} kWh`
-              : form.batteryCapacity,
-          description: form.description,
-        },
-        seller: {
-          id: userInfo.id,
-          name: userInfo.name,
-          email: userInfo.email,
-        },
-      };
-
-      // Show contract modal for seller to sign
-      setCreatedVehicleId(productId);
-      setContractData(newContractData);
-      setShowContractModal(true);
-    } catch (e) {
-      console.error("Error in handleSubmit:", e);
-      const errorMessage =
-        e instanceof Error
-          ? e.message
-          : t("toast.createFailed", "Failed to create listing");
-      showError(errorMessage);
-      setSubmitting(false);
-    }
-  };
-
-  // Handle seller signing the contract
-  const handleSellerSign = async (signature: string) => {
-    try {
-      if (!createdVehicleId || !contractData) {
-        showError("Thiếu thông tin hợp đồng");
-        return;
-      }
-
-      // Create contract with seller signature
-      const contractWithSignature = {
-        ...contractData,
-        seller: {
-          ...contractData.seller,
-          signature,
-          signedAt: new Date().toISOString(),
-        },
-      };
-
-      const contractResult = await createSellerContract(contractWithSignature);
-
-      if (!contractResult.success) {
-        showError("Không thể tạo hợp đồng: " + contractResult.message);
-        return;
-      }
-
-      // Close modal and show success
-      setShowContractModal(false);
-      success("Hợp đồng đã được ký thành công!");
+      // Success - show message and refresh
+      success(
+        result.message || t("toast.createSuccess", "Listing created successfully!")
+      );
 
       // Refresh cache to show new listing immediately
       if (listingType === "vehicle") {
@@ -558,9 +461,6 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
       setImagePreviews([]);
       setCurrentStep(1);
       setErrors([]);
-      setCreatedVehicleId(null);
-      setContractData(null);
-      setSubmitting(false);
 
       // Call onSuccess callback to switch to MyListings tab
       if (onSuccess) {
@@ -1618,21 +1518,6 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
           </button>
         )}
       </div>
-
-      {/* Contract Modal */}
-      {showContractModal && contractData && (
-        <ContractModal
-          isOpen={showContractModal}
-          onClose={() => {
-            setShowContractModal(false);
-            setSubmitting(false);
-          }}
-          onSign={handleSellerSign}
-          contractData={contractData}
-          signerRole="seller"
-          currentUserName={contractData.seller.name}
-        />
-      )}
     </div>
   );
 }

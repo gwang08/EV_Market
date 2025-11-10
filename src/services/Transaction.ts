@@ -104,3 +104,144 @@ export const getPaymentGatewayName = (gateway: string): string => {
       return gateway
   }
 }
+
+/**
+ * Pay for auction transaction (for winner)
+ * @param transactionId - The transaction ID
+ * @param paymentMethod - WALLET, MOMO, or VNPAY
+ * @param redirectUrl - Optional redirect URL for payment gateway
+ */
+export interface PayAuctionRequest {
+  paymentMethod: 'WALLET' | 'MOMO' | 'VNPAY'
+  redirectUrl?: string
+}
+
+export interface PayAuctionResponse {
+  message: string
+  data: {
+    id: string
+    buyerId: string
+    status: string
+    confirmationDeadline: string | null
+    paymentDeadline: string
+    type: string
+    vehicleId: string | null
+    batteryId: string | null
+    finalPrice: number
+    paymentGateway: string
+    paymentDetail: {
+      amount: number
+      payUrl?: string
+      message?: string
+      orderId?: string
+      deeplink?: string
+      qrCodeUrl?: string
+      requestId?: string
+      resultCode?: number
+      partnerCode?: string
+      responseTime?: number
+      deeplinkMiniApp?: string
+    }
+    createdAt: string
+    updatedAt: string
+    vehicle?: any
+    battery?: any
+    buyer?: any
+  }
+}
+
+/**
+ * Get pending auction transaction for an item (for winner payment)
+ * @param itemId - The vehicle or battery ID
+ * @param itemType - 'vehicle' or 'battery'
+ */
+export const getPendingAuctionTransaction = async (
+  itemId: string,
+  itemType: 'vehicle' | 'battery'
+): Promise<Transaction | null> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    console.log('🔍 Searching for pending auction transaction:', { itemId, itemType })
+
+    // Get all transactions
+    const response = await getMyTransactions(1, 100)
+    
+    console.log('📋 All user transactions:', {
+      total: response.data.transactions.length,
+      transactions: response.data.transactions.map(tx => ({
+        id: tx.id,
+        status: tx.status,
+        type: (tx as any).type,
+        vehicleId: tx.vehicleId,
+        batteryId: tx.batteryId,
+        finalPrice: tx.finalPrice
+      }))
+    })
+    
+    // Find pending auction transaction for this item
+    const pendingTransaction = response.data.transactions.find(tx => {
+      const matchesItem = itemType === 'vehicle' 
+        ? tx.vehicleId === itemId 
+        : tx.batteryId === itemId
+      
+      const isPendingAuction = tx.status === 'PENDING' && (tx as any).type === 'AUCTION'
+      
+      console.log('🔎 Checking transaction:', {
+        txId: tx.id,
+        matchesItem,
+        isPendingAuction,
+        status: tx.status,
+        type: (tx as any).type
+      })
+      
+      return matchesItem && isPendingAuction
+    })
+
+    if (pendingTransaction) {
+      console.log('✅ Found pending transaction:', pendingTransaction)
+    } else {
+      console.log('⚠️ No pending transaction found for this item')
+    }
+
+    return pendingTransaction || null
+  } catch (error) {
+    console.error('❌ Failed to get pending transaction:', error)
+    return null
+  }
+}
+
+export const payAuctionTransaction = async (
+  transactionId: string,
+  request: PayAuctionRequest
+): Promise<PayAuctionResponse> => {
+  try {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/pay`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(request)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to pay auction transaction:', error)
+    throw error
+  }
+}
