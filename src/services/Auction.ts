@@ -194,12 +194,16 @@ export const getTimeRemaining = (endDate: string): {
   seconds: number
   isExpired: boolean
 } => {
-  // Parse end date and current time in UTC to avoid timezone issues
-  const endTime = new Date(endDate).getTime()
-  const now = new Date().getTime()
-  const total = endTime - now
+  // API trả về: "2025-11-10T21:55:00.000Z" 
+  // Nhưng thực chất đó là 21:55 giờ local (VN), không phải UTC
+  // Nên phải parse như local time
   
-  // Debug log
+  // Remove 'Z' để parse như local time thay vì UTC
+  const endDateLocal = endDate.replace('Z', '')
+  const endTime = new Date(endDateLocal).getTime()
+  const now = Date.now()
+  
+  const total = endTime - now
 
   const seconds = Math.floor((total / 1000) % 60)
   const minutes = Math.floor((total / 1000 / 60) % 60)

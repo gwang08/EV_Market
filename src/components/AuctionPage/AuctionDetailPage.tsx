@@ -35,6 +35,18 @@ interface AuctionDetailPageProps {
   auctionId: string;
 }
 
+// Helper function to format date without timezone conversion
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
+
 // Helper function to map server errors to localized messages
 const getLocalizedErrorMessage = (
   serverMessage: string,
@@ -172,7 +184,8 @@ export default function AuctionDetailPage({
   // Check if auction has started
   const isAuctionStarted = () => {
     if (!auction?.auctionStartsAt) return true; // Default to true if no start time
-    return new Date() >= new Date(auction.auctionStartsAt);
+    // Remove 'Z' to parse as local time
+    return new Date() >= new Date(auction.auctionStartsAt.replace("Z", ""));
   };
 
   useEffect(() => {
@@ -242,9 +255,10 @@ export default function AuctionDetailPage({
     if (!auction) return;
 
     const timer = setInterval(() => {
+      // Parse auction times như local time (remove 'Z' để không bị convert timezone)
+      const startTime = new Date(auction.auctionStartsAt.replace("Z", ""));
+      const endTime = new Date(auction.auctionEndsAt.replace("Z", ""));
       const now = new Date();
-      const startTime = new Date(auction.auctionStartsAt);
-      const endTime = new Date(auction.auctionEndsAt);
 
       // If auction hasn't started yet, countdown to start time
       if (now < startTime) {
@@ -831,16 +845,7 @@ export default function AuctionDetailPage({
                                     )}
                                   </p>
                                   <p className="text-xs text-slate-500">
-                                    {new Date(bid.createdAt).toLocaleString(
-                                      "vi-VN",
-                                      {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      }
-                                    )}
+                                    {formatDateTime(bid.createdAt)}
                                   </p>
                                 </div>
                               </div>
@@ -991,31 +996,18 @@ export default function AuctionDetailPage({
                       :
                     </span>
                     <span className="font-bold">
-                      {new Date(auction.auctionStartsAt).toLocaleString(
-                        "vi-VN",
-                        {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )}
+                      {formatDateTime(auction.auctionStartsAt)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="opacity-90 font-medium">
                       {!isAuctionStarted()
                         ? t("auctions.willEnd", "Sẽ kết thúc")
-                        : t("auctions.ends", "Kết thúc")}
+                        : t("auctions.endTime", "Kết thúc")}
                       :
                     </span>
                     <span className="font-bold">
-                      {new Date(auction.auctionEndsAt).toLocaleString("vi-VN", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatDateTime(auction.auctionEndsAt)}
                     </span>
                   </div>
                 </div>
@@ -1096,16 +1088,7 @@ export default function AuctionDetailPage({
                             </p>
                             <p className="text-xs text-yellow-700">
                               {t("auctions.auctionNotStartedDesc")}{" "}
-                              {new Date(auction.auctionStartsAt).toLocaleString(
-                                "vi-VN",
-                                {
-                                  year: "numeric",
-                                  month: "2-digit",
-                                  day: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
+                              {formatDateTime(auction.auctionStartsAt)}
                             </p>
                           </div>
                         </div>
