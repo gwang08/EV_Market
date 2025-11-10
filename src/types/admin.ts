@@ -6,6 +6,17 @@ export interface AdminUser {
   role: "ADMIN";
 }
 
+export interface UsersResponse {
+  message: string;
+  data: {
+    users: User[];
+    page: number;
+    limit: number;
+    totalPages: number;
+    totalResults: number;
+  };
+}
+
 export interface AuctionRequest {
   id: string;
   title: string;
@@ -89,10 +100,15 @@ export interface User {
   avatar: string | null;
   role: "ADMIN" | "MEMBER" | "STAFF";
   isVerified: boolean;
+  isActive?: boolean;
   isLocked: boolean;
   lockReason: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    vehicles: number;
+    batteries: number;
+  };
 }
 
 export interface Fee {

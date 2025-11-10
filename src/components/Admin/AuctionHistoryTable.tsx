@@ -1,30 +1,51 @@
 "use client";
 import React, { useState } from "react";
 import { AuctionRequest } from "@/types/admin";
-import { Eye, ExternalLink, Calendar, DollarSign, TrendingUp, XCircle, CheckCircle, Clock } from "lucide-react";
+import {
+  Eye,
+  ExternalLink,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  XCircle,
+  CheckCircle,
+  Clock,
+} from "lucide-react";
 import Link from "next/link";
 
 interface AuctionHistoryTableProps {
   auctions: AuctionRequest[];
 }
 
-export default function AuctionHistoryTable({ auctions }: AuctionHistoryTableProps) {
+export default function AuctionHistoryTable({
+  auctions,
+}: AuctionHistoryTableProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " VNĐ";
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    // HIỂN THỊ ĐÚNG THỜI GIAN TỪ API (KHÔNG CONVERT TIMEZONE)
+    // API trả về: "2025-11-10T21:55:00.000Z" (coi như UTC nhưng thực ra là giờ local)
+    // Hiển thị: "21:55 10/11/2025" (giữ nguyên)
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: { [key: string]: { label: string; className: string; icon: React.ReactNode } } = {
+    const statusConfig: {
+      [key: string]: {
+        label: string;
+        className: string;
+        icon: React.ReactNode;
+      };
+    } = {
       AUCTION_LIVE: {
         label: "Đang diễn ra",
         className: "bg-green-100 text-green-800 border-green-200",
@@ -54,7 +75,9 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
     };
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${config.className}`}>
+      <span
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${config.className}`}
+      >
         {config.icon}
         {config.label}
       </span>
@@ -108,7 +131,10 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
           </thead>
           <tbody className="divide-y divide-gray-200">
             {auctions.map((auction) => (
-              <tr key={auction.id} className="hover:bg-gray-50 transition-colors">
+              <tr
+                key={auction.id}
+                className="hover:bg-gray-50 transition-colors"
+              >
                 {/* Product Info */}
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -126,7 +152,10 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate max-w-xs" title={auction.title}>
+                      <p
+                        className="text-sm font-semibold text-gray-900 truncate max-w-xs"
+                        title={auction.title}
+                      >
                         {auction.title}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -162,11 +191,13 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <Calendar className="w-3.5 h-3.5" />
-                      {auction.auctionStartsAt && formatDate(auction.auctionStartsAt)}
+                      {auction.auctionStartsAt &&
+                        formatDate(auction.auctionStartsAt)}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <Calendar className="w-3.5 h-3.5" />
-                      {auction.auctionEndsAt && formatDate(auction.auctionEndsAt)}
+                      {auction.auctionEndsAt &&
+                        formatDate(auction.auctionEndsAt)}
                     </div>
                   </div>
                 </td>
@@ -174,11 +205,15 @@ export default function AuctionHistoryTable({ auctions }: AuctionHistoryTablePro
                 {/* Status */}
                 <td className="px-6 py-4">
                   {getStatusBadge(auction.status)}
-                  {auction.status === "AUCTION_REJECTED" && auction.auctionRejectionReason && (
-                    <p className="text-xs text-red-600 mt-1 max-w-xs truncate" title={auction.auctionRejectionReason}>
-                      {auction.auctionRejectionReason}
-                    </p>
-                  )}
+                  {auction.status === "AUCTION_REJECTED" &&
+                    auction.auctionRejectionReason && (
+                      <p
+                        className="text-xs text-red-600 mt-1 max-w-xs truncate"
+                        title={auction.auctionRejectionReason}
+                      >
+                        {auction.auctionRejectionReason}
+                      </p>
+                    )}
                 </td>
 
                 {/* Seller */}

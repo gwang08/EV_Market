@@ -62,6 +62,7 @@ export interface LiveAuction {
   currentBid?: number
   hasUserDeposit?: boolean
   userDeposit?: Deposit
+  userAuctionResult?: 'WON' | 'LOST' | 'NO_BIDS' | null
 }
 
 export interface BidResponse {

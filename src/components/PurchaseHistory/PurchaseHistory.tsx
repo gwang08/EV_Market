@@ -201,6 +201,7 @@ export default function PurchaseHistory() {
                   <TransactionCard
                     key={transaction.id}
                     transaction={transaction}
+                    onTransactionUpdate={() => fetchTransactions(currentPage)}
                   />
                 ))}
               </div>

@@ -13,7 +13,11 @@ interface AuctionRequestCardProps {
     startTime: string,
     endTime: string
   ) => void;
-  onReject: (id: string, listingType: "VEHICLE" | "BATTERY", reason: string) => void;
+  onReject: (
+    id: string,
+    listingType: "VEHICLE" | "BATTERY",
+    reason: string
+  ) => void;
 }
 
 export default function AuctionRequestCard({
@@ -41,21 +45,19 @@ export default function AuctionRequestCard({
       return;
     }
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-
-    if (end <= start) {
+    // Kiểm tra logic thời gian (so sánh string)
+    if (endTime <= startTime) {
       alert("Thời gian kết thúc phải sau thời gian bắt đầu");
       return;
     }
 
-    // Convert to ISO string for API
-    onApprove(
-      request.id,
-      request.listingType,
-      start.toISOString(),
-      end.toISOString()
-    );
+    // GỬI THỜI GIAN ĐÚNG NHƯ NGƯỜI DÙNG CHỌN (KHÔNG CONVERT)
+    // User chọn: "2025-11-10T21:55"
+    // Gửi API: "2025-11-10T21:55:00.000Z" (coi như UTC, nhưng thực ra là giờ local)
+    const startISO = startTime + ":00.000Z";
+    const endISO = endTime + ":00.000Z";
+
+    onApprove(request.id, request.listingType, startISO, endISO);
     setShowApproveModal(false);
     setStartTime("");
     setEndTime("");
@@ -222,8 +224,12 @@ export default function AuctionRequestCard({
                       const now = new Date();
                       const start = new Date(now);
                       const end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                      start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
-                      end.setMinutes(end.getMinutes() - end.getTimezoneOffset());
+                      start.setMinutes(
+                        start.getMinutes() - start.getTimezoneOffset()
+                      );
+                      end.setMinutes(
+                        end.getMinutes() - end.getTimezoneOffset()
+                      );
                       setStartTime(start.toISOString().slice(0, 16));
                       setEndTime(end.toISOString().slice(0, 16));
                     }}
@@ -236,9 +242,15 @@ export default function AuctionRequestCard({
                     onClick={() => {
                       const now = new Date();
                       const start = new Date(now);
-                      const end = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-                      start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
-                      end.setMinutes(end.getMinutes() - end.getTimezoneOffset());
+                      const end = new Date(
+                        now.getTime() + 3 * 24 * 60 * 60 * 1000
+                      );
+                      start.setMinutes(
+                        start.getMinutes() - start.getTimezoneOffset()
+                      );
+                      end.setMinutes(
+                        end.getMinutes() - end.getTimezoneOffset()
+                      );
                       setStartTime(start.toISOString().slice(0, 16));
                       setEndTime(end.toISOString().slice(0, 16));
                     }}
@@ -251,9 +263,15 @@ export default function AuctionRequestCard({
                     onClick={() => {
                       const now = new Date();
                       const start = new Date(now);
-                      const end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-                      start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
-                      end.setMinutes(end.getMinutes() - end.getTimezoneOffset());
+                      const end = new Date(
+                        now.getTime() + 7 * 24 * 60 * 60 * 1000
+                      );
+                      start.setMinutes(
+                        start.getMinutes() - start.getTimezoneOffset()
+                      );
+                      end.setMinutes(
+                        end.getMinutes() - end.getTimezoneOffset()
+                      );
                       setStartTime(start.toISOString().slice(0, 16));
                       setEndTime(end.toISOString().slice(0, 16));
                     }}

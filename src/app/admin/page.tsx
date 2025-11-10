@@ -24,7 +24,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     loadStats();
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadStats();
@@ -63,7 +63,7 @@ function AdminDashboard() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Chào mừng trở lại! 👋
+                Chào mừng trở lại!
               </h2>
               <p className="text-gray-600">
                 Quản lý toàn bộ hệ thống EcoTrade EV tại đây
@@ -75,7 +75,9 @@ function AdminDashboard() {
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               title="Làm mới dữ liệu"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
               Làm mới
             </button>
           </div>

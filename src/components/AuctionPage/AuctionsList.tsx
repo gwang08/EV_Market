@@ -41,11 +41,15 @@ export default function AuctionsList() {
     try {
       setLoading(true);
       setError(null);
+      console.log("🔍 Fetching auctions - Page:", page);
       const response = await getLiveAuctions(page, 12);
+      console.log("✅ Auctions response:", response);
+      console.log("📊 Total results:", response.data.results.length);
       setAuctions(response.data.results);
       setTotalPages(response.data.totalPages);
       setTotalResults(response.data.totalResults);
     } catch (err) {
+      console.error("❌ Error loading auctions:", err);
       setError(err instanceof Error ? err.message : "Failed to load auctions");
     } finally {
       setLoading(false);

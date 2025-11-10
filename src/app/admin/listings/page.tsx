@@ -30,32 +30,61 @@ function useDebounce<T>(value: T, delay: number): T {
 function ListingsManagementPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [allListings, setAllListings] = useState<Listing[]>([]); // Toàn bộ data
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalResults, setTotalResults] = useState(0);
-  const [filter, setFilter] = useState<"ALL" | "VERIFIED" | "UNVERIFIED">("ALL");
+  const [filter, setFilter] = useState<"ALL" | "VERIFIED" | "UNVERIFIED">(
+    "ALL"
+  );
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"ALL" | "VEHICLE" | "BATTERY">("ALL");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "VEHICLE" | "BATTERY">(
+    "ALL"
+  );
   const { success, error } = useToast();
 
   // Debounce search term để giảm số lần filter
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
 
+  // Kiểm tra có đang filter hay không
+  const isFiltering =
+    filter !== "ALL" || typeFilter !== "ALL" || debouncedSearchTerm !== "";
+
+  // Load TẤT CẢ data khi component mount hoặc sau khi verify
   useEffect(() => {
-    loadListings();
-  }, [page]);
+    loadAllListings();
+  }, []);
 
-  const loadListings = async () => {
+  // Reset page về 1 khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [filter, typeFilter, debouncedSearchTerm]);
+
+  const loadAllListings = async () => {
     try {
       setLoading(true);
-      const response = await getListings(page, 20);
+      // Load data với limit hợp lý
+      const response = await getListings(1, 100); // Giảm xuống 100
+      console.log("API Response:", response);
+
       if (response.success && response.data) {
-        setListings(response.data.listings);
-        setTotalPages(response.data.totalPages);
-        setTotalResults(response.data.totalResults);
+        console.log("Listings data:", response.data.listings);
+        console.log("Total listings:", response.data.listings.length);
+
+        // Sắp xếp theo thời gian MỚI NHẤT lên đầu (b - a để ngày mới lên trước)
+        const sortedListings = [...response.data.listings].sort(
+          (a: Listing, b: Listing) => {
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          }
+        );
+
+        console.log("Sorted listings:", sortedListings.length);
+        setAllListings(sortedListings);
+      } else {
+        console.error("API returned no data:", response);
+        error("API không trả về dữ liệu");
       }
     } catch (err) {
       console.error("Error loading listings:", err);
@@ -65,32 +94,35 @@ function ListingsManagementPage() {
     }
   };
 
-  const handleVerify = useCallback(async (
-    type: "VEHICLE" | "BATTERY",
-    listingId: string,
-    isVerified: boolean
-  ) => {
-    try {
-      const response = await verifyListing(type, listingId, isVerified);
-      if (response.success) {
-        success(
-          isVerified
-            ? "Đã xác thực tin đăng thành công"
-            : "Đã gỡ xác thực tin đăng"
-        );
-        loadListings();
-      } else {
-        error(response.message || "Thao tác thất bại");
+  const handleVerify = useCallback(
+    async (
+      type: "VEHICLE" | "BATTERY",
+      listingId: string,
+      isVerified: boolean
+    ) => {
+      try {
+        const response = await verifyListing(type, listingId, isVerified);
+        if (response.success) {
+          success(
+            isVerified
+              ? "Đã xác thực tin đăng thành công"
+              : "Đã gỡ xác thực tin đăng"
+          );
+          loadAllListings(); // Reload tất cả data
+        } else {
+          error(response.message || "Thao tác thất bại");
+        }
+      } catch (err) {
+        console.error("Error verifying listing:", err);
+        error("Có lỗi xảy ra khi xác thực tin đăng");
       }
-    } catch (err) {
-      console.error("Error verifying listing:", err);
-      error("Có lỗi xảy ra khi xác thực tin đăng");
-    }
-  }, [success, error]);
+    },
+    [success, error]
+  );
 
-  // Memoized filtered listings để tránh re-render không cần thiết
+  // Filter listings
   const filteredListings = useMemo(() => {
-    return listings.filter((listing) => {
+    return allListings.filter((listing) => {
       // Filter by verification status
       if (filter === "VERIFIED" && !listing.isVerified) return false;
       if (filter === "UNVERIFIED" && listing.isVerified) return false;
@@ -99,7 +131,7 @@ function ListingsManagementPage() {
       if (typeFilter === "VEHICLE" && listing.type !== "VEHICLE") return false;
       if (typeFilter === "BATTERY" && listing.type !== "BATTERY") return false;
 
-      // Filter by search term (sử dụng debounced value)
+      // Filter by search term
       if (debouncedSearchTerm) {
         const search = debouncedSearchTerm.toLowerCase();
         return (
@@ -111,15 +143,28 @@ function ListingsManagementPage() {
 
       return true;
     });
-  }, [listings, filter, typeFilter, debouncedSearchTerm]);
+  }, [allListings, filter, typeFilter, debouncedSearchTerm]);
 
-  const stats = useMemo(() => ({
-    total: listings.length,
-    verified: listings.filter(l => l.isVerified).length,
-    unverified: listings.filter(l => !l.isVerified).length,
-    vehicles: listings.filter(l => l.type === "VEHICLE").length,
-    batteries: listings.filter(l => l.type === "BATTERY").length,
-  }), [listings]);
+  // Pagination cho filtered data
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(filteredListings.length / itemsPerPage);
+
+  const paginatedListings = useMemo(() => {
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredListings.slice(startIndex, endIndex);
+  }, [filteredListings, page]);
+
+  const stats = useMemo(
+    () => ({
+      total: allListings.length,
+      verified: allListings.filter((l) => l.isVerified).length,
+      unverified: allListings.filter((l) => !l.isVerified).length,
+      vehicles: allListings.filter((l) => l.type === "VEHICLE").length,
+      batteries: allListings.filter((l) => l.type === "BATTERY").length,
+    }),
+    [allListings]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,19 +189,27 @@ function ListingsManagementPage() {
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-sm text-green-600 mb-1">Đã xác thực</p>
-              <p className="text-2xl font-bold text-green-700">{stats.verified}</p>
+              <p className="text-2xl font-bold text-green-700">
+                {stats.verified}
+              </p>
             </div>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-600 mb-1">Chưa xác thực</p>
-              <p className="text-2xl font-bold text-yellow-700">{stats.unverified}</p>
+              <p className="text-2xl font-bold text-yellow-700">
+                {stats.unverified}
+              </p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-600 mb-1">Xe điện</p>
-              <p className="text-2xl font-bold text-blue-700">{stats.vehicles}</p>
+              <p className="text-2xl font-bold text-blue-700">
+                {stats.vehicles}
+              </p>
             </div>
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <p className="text-sm text-purple-600 mb-1">Pin</p>
-              <p className="text-2xl font-bold text-purple-700">{stats.batteries}</p>
+              <p className="text-2xl font-bold text-purple-700">
+                {stats.batteries}
+              </p>
             </div>
           </div>
 
@@ -177,7 +230,9 @@ function ListingsManagementPage() {
           {/* Filters */}
           <div className="mb-6 flex flex-wrap gap-2">
             <div className="flex gap-2">
-              <span className="text-sm font-medium text-gray-700 py-2">Trạng thái:</span>
+              <span className="text-sm font-medium text-gray-700 py-2">
+                Trạng thái:
+              </span>
               {[
                 { value: "ALL", label: "Tất cả" },
                 { value: "VERIFIED", label: "Đã xác thực" },
@@ -200,7 +255,9 @@ function ListingsManagementPage() {
             <div className="border-l border-gray-300 mx-2"></div>
 
             <div className="flex gap-2">
-              <span className="text-sm font-medium text-gray-700 py-2">Loại:</span>
+              <span className="text-sm font-medium text-gray-700 py-2">
+                Loại:
+              </span>
               {[
                 { value: "ALL", label: "Tất cả" },
                 { value: "VEHICLE", label: "Xe điện" },
@@ -225,7 +282,7 @@ function ListingsManagementPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
-          ) : filteredListings.length === 0 ? (
+          ) : paginatedListings.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
               <p className="text-gray-500 text-lg">
                 {debouncedSearchTerm
@@ -236,10 +293,11 @@ function ListingsManagementPage() {
           ) : (
             <>
               <ListingTable
-                listings={filteredListings}
+                listings={paginatedListings}
                 onVerify={handleVerify}
               />
 
+              {/* Pagination - luôn hiển thị nếu có nhiều hơn 1 trang */}
               {totalPages > 1 && (
                 <div className="mt-8">
                   <Pagination
@@ -248,6 +306,11 @@ function ListingsManagementPage() {
                     onPageChange={setPage}
                     disabled={loading}
                   />
+                  <p className="text-center text-sm text-gray-500 mt-2">
+                    Hiển thị {paginatedListings.length} /{" "}
+                    {filteredListings.length} kết quả
+                    {isFiltering && " (đã lọc)"}
+                  </p>
                 </div>
               )}
             </>
