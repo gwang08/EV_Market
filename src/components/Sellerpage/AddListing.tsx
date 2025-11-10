@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   validateField,
   validateForm,
@@ -242,6 +242,28 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     spec_temperatureRange: "",
   });
 
+  // Keep form values in sync with currency input hooks so the review screen shows data
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      price: priceInput.rawValue,
+    }));
+  }, [priceInput.rawValue]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      mileage: mileageInput.rawValue,
+    }));
+  }, [mileageInput.rawValue]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      batteryCapacity: batteryCapacityInput.rawValue,
+    }));
+  }, [batteryCapacityInput.rawValue]);
+
   // Handle input change (no validation on change)
   const handleChange = useCallback((field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -304,6 +326,16 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
       return;
     }
 
+    // Require description at create time; stay on Review & Submit (step 5)
+    if (!form.description || !form.description.trim()) {
+      setErrors([
+        { field: "description", message: t("seller.addListing.validation.required") },
+      ]);
+      setCurrentStep(5);
+      showError(t("seller.addListing.validation.required"));
+      return;
+    }
+
     // Update form with currency input values before validation
     const formToValidate = {
       ...form,
@@ -315,7 +347,11 @@ function AddListing({ onSuccess }: AddListingProps = {}) {
     const validation = validateForm(formToValidate, listingType);
     if (!validation.isValid) {
       setErrors(validation.errors);
-      setCurrentStep(1); // Go back to first step with errors
+      const hasDescriptionError = validation.errors.some(
+        (e) => e.field === "description"
+      );
+      // If description is missing, keep user on review step
+      setCurrentStep(hasDescriptionError ? 5 : 1);
       return;
     }
 

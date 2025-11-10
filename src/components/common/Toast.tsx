@@ -88,6 +88,7 @@ export const Toast: React.FC<ToastProps> = ({
       className={`fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ease-in-out ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       } ${type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : type === 'warning' ? 'border-yellow-500' : 'border-blue-500'}`}
+      style={{ zIndex: 10000 }}
     >
       <div className="p-4">
         <div className="flex items-start">
@@ -138,7 +139,7 @@ export interface ToastContainerProps {
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onClose }) => {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-50 space-y-2" style={{ zIndex: 9999 }}>
       {toasts.map((toast) => (
         <Toast key={toast.id} {...toast} onClose={onClose} />
       ))}
