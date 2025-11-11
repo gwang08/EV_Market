@@ -48,8 +48,8 @@ export const getLiveAuctions = async (page = 1, limit = 10): Promise<LiveAuction
     }
 
     // Thêm query parameters để lấy đấu giá đang diễn ra hoặc sắp diễn ra
-    const url = `${API_BASE_URL}/auctions/live?time=future&page=${page}&limit=${limit}`
-    console.log("🔗 Fetching auctions from:", url);
+    const url = `${API_BASE_URL}/auctions/live`
+    // console.log("🔗 Fetching auctions from:", url);
     
     const response = await fetch(url, {
       method: 'GET',
