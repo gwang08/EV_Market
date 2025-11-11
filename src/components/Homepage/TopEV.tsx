@@ -28,14 +28,26 @@ export default function TopEV() {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  // Filter vehicles when data changes - chỉ hiển thị xe đã verified
+  // Filter vehicles when data changes - chỉ hiển thị xe đã verified, available và không phải xe của mình
   useEffect(() => {
-    if (allVehicles && allVehicles.length > 0) {
-      const verifiedVehicles = allVehicles
-        .filter((vehicle) => vehicle.isVerified === true) // Chỉ lấy xe đã verified
-        .slice(0, 4); // Giới hạn 6 xe
-      setDisplayVehicles(verifiedVehicles);
-    }
+    const filterVehicles = async () => {
+      if (!allVehicles || allVehicles.length === 0) return;
+
+      const currentUserId = await getCurrentUserId();
+
+      const filteredVehicles = allVehicles.filter((vehicle) => {
+        const isAvailable = vehicle.status === "AVAILABLE";
+        const isVerified = vehicle.isVerified === true;
+        const isNotOwnVehicle =
+          !currentUserId || vehicle.sellerId !== currentUserId;
+
+        return isAvailable && isVerified && isNotOwnVehicle;
+      });
+
+      setDisplayVehicles(filteredVehicles.slice(0, 4)); // Giới hạn 4 xe
+    };
+
+    filterVehicles();
   }, [allVehicles]);
 
   if (isLoadingVehicles) {
